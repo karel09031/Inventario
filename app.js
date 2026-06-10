@@ -13,9 +13,7 @@ let estado = {
 };
 
 let sortableInstance = null;
-let ultimoMovimiento = null; 
-
-// Variables para el sistema de Batching (acumulación de clics)
+let toastTimer = null; 
 let pendingChanges = {}; 
 let changeTimers = {};   
 
@@ -70,12 +68,12 @@ function seleccionarPared(id, nombre) {
   renderizarBloques();
 }
 
+// LÓGICA DE TOGGLE MODO (HISTORIAL / INVENTARIO)
 function toggleModo() {
     const appLayout = document.querySelector('.app-layout');
     const historialSec = document.getElementById('seccion-historial');
     const btnToggle = document.getElementById('btn-toggle-vista');
     
-    // Mostrar fecha actual con el mes escrito (ej. 9 de junio de 2026)
     const panelFecha = document.getElementById('fecha-actual');
     if(panelFecha) {
         panelFecha.textContent = new Date().toLocaleDateString('es-ES', { 
@@ -98,47 +96,29 @@ function toggleModo() {
 }
 
 // --- 7. LÓGICA DE HISTORIAL, UNDO Y ELIMINACIÓN ---
-function mostrarToast(mensaje, movimiento) {
-    ultimoMovimiento = movimiento;
+function mostrarToast(mensaje) {
     const toast = document.getElementById('toast-undo');
-    document.getElementById('toast-msg').textContent = mensaje;
+    const msgElement = document.getElementById('toast-msg');
+    if (msgElement) msgElement.textContent = mensaje;
     toast.classList.remove('oculto');
-    setTimeout(() => toast.classList.add('oculto'), 5000);
+    
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        toast.classList.add('oculto');
+    }, 5000);
 }
 
+// Función auxiliar para registrar en base de datos
 async function registrarMovimiento(bloque, cambio) {
     const pared = estado.paredes.find(p => p.id === bloque.pared_id);
-    const { data, error } = await supabaseClient.from('historial').insert([{
+    const { error } = await supabaseClient.from('historial').insert([{
         bloque_id: bloque.id,
         nombre_bloque: bloque.nombre,
         nombre_pared: pared ? pared.nombre : "Desconocido",
         cambio: cambio
-    }]).select().single();
+    }]);
     
-    if (!error) mostrarToast(`Cambio de ${cambio > 0 ? '+' : ''}${cambio} realizado`, data);
-}
-
-async function eliminarRegistroHistorial(id) {
-    const confirmar = await solicitarConfirmacion("¿Eliminar este registro del historial?");
-    if (!confirmar) return;
-    await supabaseClient.from('historial').delete().eq('id', id);
-    cargarHistorial();
-}
-
-async function ejecutarUndo() {
-    if (!ultimoMovimiento) return;
-    
-    const bloque = estado.bloques.find(b => b.id === ultimoMovimiento.bloque_id);
-    if (bloque) {
-        bloque.cantidad -= ultimoMovimiento.cambio;
-        await supabaseClient.from('bloques').update({ cantidad: bloque.cantidad }).eq('id', bloque.id);
-        renderizarBloques();
-        calcularTotalGlobal();
-    }
-    
-    await supabaseClient.from('historial').delete().eq('id', ultimoMovimiento.id);
-    document.getElementById('toast-undo').classList.add('oculto');
-    ultimoMovimiento = null;
+    if (!error) mostrarToast(`Cambio de ${cambio > 0 ? '+' : ''}${cambio} registrado`);
 }
 
 async function cargarHistorial() {
@@ -166,6 +146,110 @@ async function cargarHistorial() {
         </div>
     `).join('');
     lucide.createIcons();
+}
+
+async function eliminarRegistroHistorial(id) {
+    const confirmar = await solicitarConfirmacion("¿Eliminar este registro del historial?");
+    if (!confirmar) return;
+    await supabaseClient.from('historial').delete().eq('id', id);
+    cargarHistorial();
+}
+
+// LÓGICA DE DESHACER (NUEVA)
+// --- 9. ACCIONES Y CRUD (CON BATCHING Y UNDO MEJORADO) ---
+
+async function ejecutarUndo() {
+    // 1. Identificar el bloque que tiene cambios pendientes
+    const bloqueId = Object.keys(pendingChanges).find(id => pendingChanges[id] !== 0);
+    if (!bloqueId) return;
+
+    const b = estado.bloques.find(x => x.id === bloqueId);
+    if (!b) return;
+
+    // 2. Cancelar el temporizador si aún está activo
+    if (changeTimers[bloqueId]) {
+        clearTimeout(changeTimers[bloqueId]);
+        changeTimers[bloqueId] = null;
+    }
+
+    // 3. Revertir la cantidad
+    const cambioTotal = pendingChanges[bloqueId];
+    b.cantidad -= cambioTotal;
+    
+    // 4. RESETEAR ANTES DE CUALQUIER OTRA COSA
+    // Esto asegura que el setTimeout vea que ya no hay cambios pendientes
+    pendingChanges[bloqueId] = 0;
+
+    // 5. Actualizar UI
+    renderizarBloques();
+    calcularTotalGlobal();
+    
+    // Cerrar el toast inmediatamente tras deshacer
+    const toast = document.getElementById('toast-undo');
+    toast.classList.add('oculto');
+    
+    mostrarToast("Acción deshecha");
+}
+
+async function actualizarCantidad(bloqueId, cambio) {
+    const b = estado.bloques.find(x => x.id === bloqueId);
+    if (!b || (b.cantidad + cambio < 0)) return;
+
+    // UI Inmediata
+    b.cantidad += cambio;
+    renderizarBloques();
+    calcularTotalGlobal();
+
+    // Acumulación
+    if (!pendingChanges[bloqueId]) pendingChanges[bloqueId] = 0;
+    pendingChanges[bloqueId] += cambio;
+
+    // Feedback
+    mostrarToast(`Cambio: ${pendingChanges[bloqueId] > 0 ? '+' : ''}${pendingChanges[bloqueId]}`);
+
+    // Limpiar temporizador previo
+    if (changeTimers[bloqueId]) clearTimeout(changeTimers[bloqueId]);
+
+    // Nuevo temporizador
+    changeTimers[bloqueId] = setTimeout(async () => {
+        // VERIFICACIÓN DE SEGURIDAD: 
+        // Si el usuario presionó Undo, pendingChanges[bloqueId] será 0, así que salimos.
+        if (pendingChanges[bloqueId] === 0) return;
+
+        const totalAcumulado = pendingChanges[bloqueId];
+        
+        // Ejecutar guardado en BD
+        await supabaseClient.from('bloques').update({ cantidad: b.cantidad }).eq('id', bloqueId);
+        
+        const pared = estado.paredes.find(p => p.id === b.pared_id);
+        await supabaseClient.from('historial').insert([{
+            bloque_id: b.id,
+            nombre_bloque: b.nombre,
+            nombre_pared: pared ? pared.nombre : "Desconocido",
+            cambio: totalAcumulado
+        }]);
+
+        // Solo limpiar después de guardar exitosamente
+        pendingChanges[bloqueId] = 0;
+        
+        // Ocultar toast si sigue visible
+        document.getElementById('toast-undo').classList.add('oculto');
+    }, 3000);
+}    
+
+async function editarCantidadDirecta(bloqueId, nuevoValor) {
+    const cantidadNueva = parseInt(nuevoValor);
+    if (isNaN(cantidadNueva) || cantidadNueva < 0) return;
+    const bloque = estado.bloques.find(b => b.id === bloqueId);
+    if (!bloque) return;
+    const cambio = cantidadNueva - bloque.cantidad;
+    if (cambio !== 0) {
+        bloque.cantidad = cantidadNueva;
+        await supabaseClient.from('bloques').update({ cantidad: cantidadNueva }).eq('id', bloqueId);
+        await registrarMovimiento(bloque, cambio);
+        renderizarBloques();
+        calcularTotalGlobal();
+    }
 }
 
 // --- 8. RENDERIZADO ---
@@ -215,7 +299,6 @@ function renderizarBloques() {
     const tituloParedUI = document.getElementById('titulo-pared-dinamico');
     const totalContainerUI = document.getElementById('total-container');
 
-    // --- FIX: Actualización del nombre de la pared en el título ---
     if (estado.busqueda) {
         tituloParedUI.innerHTML = `Pared: <b>Resultados de búsqueda</b>`;
     } else if (estado.paredActivaId) {
@@ -224,7 +307,6 @@ function renderizarBloques() {
     } else {
         tituloParedUI.innerHTML = `Pared: <b>Selecciona una</b>`;
     }
-    // -----------------------------------------------------------
 
     let bloquesAMostrar = [];
     if (estado.busqueda) {
@@ -267,44 +349,6 @@ function renderizarBloques() {
     if (totalContainerUI) {
         const total = bloquesAMostrar.reduce((sum, b) => sum + b.cantidad, 0);
         totalContainerUI.innerHTML = `<div class="total-panel" style="margin-top:10px; font-weight:bold;">Total: ${total}</div>`;
-    }
-}
-
-// --- 9. ACCIONES Y CRUD (CON BATCHING) ---
-async function actualizarCantidad(bloqueId, cambio) {
-    const b = estado.bloques.find(x => x.id === bloqueId);
-    if (!b || (b.cantidad + cambio < 0)) return;
-
-    // 1. UI Inmediata (Feedback instantáneo)
-    b.cantidad += cambio;
-    renderizarBloques();
-    calcularTotalGlobal();
-
-    // 2. Acumulación (Batching)
-    if (!pendingChanges[bloqueId]) pendingChanges[bloqueId] = 0;
-    pendingChanges[bloqueId] += cambio;
-
-    // 3. Timer (800ms) para consolidar petición
-    if (changeTimers[bloqueId]) clearTimeout(changeTimers[bloqueId]);
-
-    changeTimers[bloqueId] = setTimeout(async () => {
-        const totalAcumulado = pendingChanges[bloqueId];
-        pendingChanges[bloqueId] = 0; // reset
-        
-        await supabaseClient.from('bloques').update({ cantidad: b.cantidad }).eq('id', bloqueId);
-        await registrarMovimiento(b, totalAcumulado);
-    }, 800);
-}
-
-async function editarCantidadDirecta(bloqueId, nuevoValor) {
-    const cantidad = parseInt(nuevoValor);
-    if (isNaN(cantidad) || cantidad < 0) return;
-    const bloque = estado.bloques.find(b => b.id === bloqueId);
-    if (bloque) {
-        bloque.cantidad = cantidad;
-        await supabaseClient.from('bloques').update({ cantidad: cantidad }).eq('id', bloqueId);
-        renderizarBloques();
-        calcularTotalGlobal();
     }
 }
 
