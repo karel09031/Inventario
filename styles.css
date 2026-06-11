@@ -241,3 +241,76 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
     background: rgba(0,0,0,0.1);
     border-color: white;
 }
+/* Nueva clase para bloquear la sección */
+.seccion-bloqueada {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.btn-control-edicion {
+    flex: 1; padding: 8px; cursor: pointer; border: var(--border-width) solid var(--border-color);
+    font-weight: bold; background: #fff;
+}
+/* --- AGREGAR ESTO AL FINAL DE TU STYLES.CSS --- */
+
+/* Mejora visual para cuando la sección está bloqueada */
+.seccion-bloqueada {
+    pointer-events: none; /* Bloquea todos los clics */
+    opacity: 0.6;         /* Atenúa la apariencia */
+    filter: grayscale(0.5); /* Desatura los colores */
+    transition: opacity 0.3s ease;
+}
+
+/* Estilo para los botones de control de edición */
+.btn-control-edicion {
+    flex: 1; 
+    padding: 8px; 
+    cursor: pointer; 
+    border: var(--border-width) solid var(--border-color);
+    font-weight: bold; 
+    background: #fff;
+    transition: background 0.2s;
+}
+
+.btn-control-edicion:hover {
+    background: #f0f0f0;
+}
+
+/* Asegurar que el contenedor padre de las paredes tenga posición relativa para el bloqueo */
+.paredes-section {
+    position: relative;
+}
+
+/* Opcional: Si quieres un efecto de "bloqueado" al pasar el mouse por la sección bloqueada */
+/* 1. Bloqueamos solo la lista de paredes, no el contenedor completo */
+/* --- AJUSTE DE LÓGICA DE BLOQUEO (Reemplaza tus bloques finales por esto) --- */
+
+/* 1. El botón de edición SIEMPRE debe ser clickable */
+.paredes-header {
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 10;
+}
+
+/* 2. Bloqueamos solo la lista de paredes y su contenido */
+.seccion-bloqueada .lista-paredes {
+    pointer-events: none;
+    opacity: 0.6;
+    filter: grayscale(0.5);
+    transition: all 0.3s ease;
+}
+
+/* 3. Aseguramos que el botón no se vea afectado por la opacidad del padre */
+.btn-control-edicion {
+    flex: 1; 
+    padding: 8px; 
+    cursor: pointer; 
+    border: var(--border-width) solid var(--border-color);
+    font-weight: bold; 
+    background: #fff;
+    transition: background 0.2s;
+}
+
+.btn-control-edicion:hover {
+    background: #f0f0f0;
+}
