@@ -37,12 +37,16 @@
         <div id="total-container"></div>
       </section>
 
-      <aside class="paredes-section">
+      <aside class="paredes-section seccion-bloqueada">
         <div class="paredes-header">
-            <button id="btn-nueva-pared" class="btn-agregar-pared">
-              <i data-lucide="plus"></i>
-            </button>
-        </div>
+    <button id="btn-nueva-pared" class="btn-agregar-pared">
+        <i data-lucide="plus"></i>
+    </button>
+    <div id="controles-edicion-paredes" style="display: flex; gap: 5px; margin-bottom: 10px;">
+        <button id="btn-activar-edicion" class="btn-control-edicion">Editar Paredes</button>
+        <button id="btn-cancelar-edicion" class="btn-control-edicion" style="display:none;">Cancelar Edición</button>
+    </div>
+</div>
         <ul id="lista-paredes" class="lista-paredes"></ul>
       </aside>
     </main>
