@@ -3,15 +3,9 @@ const SUPABASE_URL = "https://hjpbtlkcyojxxrjvxvdb.supabase.co";
 const SUPABASE_KEY = "sb_publishable_e5z1IHGIP56qwXEi9-a0vQ_iAFMsXXy";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// --- 2. ESTADO DE LA APLICACIÓN ---
-let estado = {
-  paredes: [],
-  bloques: [],
-  paredActivaId: null,
-  busqueda: "",
-  paredIdEnEdicion: null
-};
-
+// --- 2. ESTADO Y VARIABLES ---
+let estado = { paredes: [], bloques: [], paredActivaId: null, busqueda: "", paredIdEnEdicion: null };
+let edicionParedesHabilitada = false;
 let sortableInstance = null;
 let toastTimer = null; 
 let pendingChanges = {}; 
@@ -22,7 +16,6 @@ const listaParedesUI = document.getElementById('lista-paredes');
 const listaBloquesUI = document.getElementById('lista-bloques');
 const totalGlobalUI = document.getElementById('global-total');
 const buscadorUI = document.getElementById('buscador');
-
 const modal = document.getElementById('modal-pared');
 const btnNuevaPared = document.getElementById('btn-nueva-pared');
 const btnCancelar = document.getElementById('btn-cancelar');
@@ -34,53 +27,79 @@ const btnConfirmSi = document.getElementById('btn-confirm-si');
 const btnConfirmNo = document.getElementById('btn-confirm-no');
 
 // --- 4. INICIALIZACIÓN ---
+document.addEventListener('DOMContentLoaded', () => {
+    iniciarApp();
+    inicializarControlesEdicion();
+});
+
 async function iniciarApp() {
-  await cargarParedes();
-  await cargarBloques();
-  renderizarParedes();
-  renderizarBloques();
-  calcularTotalGlobal();
+    await cargarParedes();
+    await cargarBloques();
+    renderizarParedes();
+    renderizarBloques();
+    calcularTotalGlobal();
 }
 
+function inicializarControlesEdicion() {
+    const contenedor = document.querySelector('.paredes-section');
+    const btnActivar = document.getElementById('btn-activar-edicion');
+    const btnCancelarEd = document.getElementById('btn-cancelar-edicion');
+    if (!btnActivar || !btnCancelarEd) return;
+
+    btnActivar.onclick = () => {
+        edicionParedesHabilitada = true;
+        contenedor.classList.remove('seccion-bloqueada');
+        btnActivar.style.display = 'none';
+        btnCancelarEd.style.display = 'block';
+    };
+
+    btnCancelarEd.onclick = () => {
+        edicionParedesHabilitada = false;
+        contenedor.classList.add('seccion-bloqueada');
+        btnActivar.style.display = 'block';
+        btnCancelarEd.style.display = 'none';
+        estado.paredActivaId = null;
+        renderizarParedes();
+        renderizarBloques();
+    };
+}
+
+// --- 5. CARGA DE DATOS ---
 async function cargarParedes() {
-  const { data, error } = await supabaseClient.from('paredes').select('*').order('posicion', { ascending: true });
-  if (!error) estado.paredes = data;
+    const { data, error } = await supabaseClient.from('paredes').select('*').order('posicion', { ascending: true });
+    if (!error) estado.paredes = data;
 }
 
 async function cargarBloques() {
-  const { data, error } = await supabaseClient.from('bloques').select('*');
-  if (!error) estado.bloques = data;
+    const { data, error } = await supabaseClient.from('bloques').select('*');
+    if (!error) estado.bloques = data;
 }
 
-// --- 5. BUSCADOR ---
+// --- 6. BUSCADOR ---
 buscadorUI.addEventListener('input', (e) => {
-  estado.busqueda = e.target.value.toLowerCase().trim();
-  renderizarParedes();
-  renderizarBloques();
+    estado.busqueda = e.target.value.toLowerCase().trim();
+    renderizarParedes();
+    renderizarBloques();
 });
 
-// --- 6. FUNCIONES DE SELECCIÓN Y VISTAS ---
+// --- 7. SELECCIÓN Y VISTAS ---
 function seleccionarPared(id, nombre) {
-  estado.paredActivaId = id;
-  estado.busqueda = "";
-  buscadorUI.value = "";
-  renderizarParedes();
-  renderizarBloques();
+    if (!edicionParedesHabilitada) return;
+    estado.paredActivaId = id;
+    estado.busqueda = "";
+    buscadorUI.value = "";
+    renderizarParedes();
+    renderizarBloques();
 }
 
-// LÓGICA DE TOGGLE MODO (HISTORIAL / INVENTARIO)
 function toggleModo() {
     const appLayout = document.querySelector('.app-layout');
     const historialSec = document.getElementById('seccion-historial');
     const btnToggle = document.getElementById('btn-toggle-vista');
-    
     const panelFecha = document.getElementById('fecha-actual');
+    
     if(panelFecha) {
-        panelFecha.textContent = new Date().toLocaleDateString('es-ES', { 
-            day: 'numeric', 
-            month: 'long', 
-            year: 'numeric' 
-        });
+        panelFecha.textContent = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
     }
     
     if (appLayout.style.display === 'none') {
@@ -95,20 +114,16 @@ function toggleModo() {
     }
 }
 
-// --- 7. LÓGICA DE HISTORIAL, UNDO Y ELIMINACIÓN ---
+// --- 8. HISTORIAL, UNDO Y ELIMINACIÓN ---
 function mostrarToast(mensaje) {
     const toast = document.getElementById('toast-undo');
     const msgElement = document.getElementById('toast-msg');
     if (msgElement) msgElement.textContent = mensaje;
     toast.classList.remove('oculto');
-    
     if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-        toast.classList.add('oculto');
-    }, 5000);
+    toastTimer = setTimeout(() => toast.classList.add('oculto'), 5000);
 }
 
-// Función auxiliar para registrar en base de datos
 async function registrarMovimiento(bloque, cambio) {
     const pared = estado.paredes.find(p => p.id === bloque.pared_id);
     const { error } = await supabaseClient.from('historial').insert([{
@@ -117,14 +132,12 @@ async function registrarMovimiento(bloque, cambio) {
         nombre_pared: pared ? pared.nombre : "Desconocido",
         cambio: cambio
     }]);
-    
     if (!error) mostrarToast(`Cambio de ${cambio > 0 ? '+' : ''}${cambio} registrado`);
 }
 
 async function cargarHistorial() {
     const inicio = document.getElementById('fecha-inicio').value;
     const fin = document.getElementById('fecha-fin').value;
-    
     let query = supabaseClient.from('historial').select('*').order('created_at', { ascending: false });
     if (inicio) query = query.gte('created_at', inicio);
     if (fin) query = query.lte('created_at', fin + 'T23:59:59');
@@ -133,15 +146,10 @@ async function cargarHistorial() {
     const lista = document.getElementById('lista-historial');
     lista.innerHTML = data.map(m => `
         <div class="historial-row">
-            <div>
-                <b>${m.nombre_bloque}</b> (${m.nombre_pared})<br>
-                <small>${new Date(m.created_at).toLocaleString()}</small>
-            </div>
+            <div><b>${m.nombre_bloque}</b> (${m.nombre_pared})<br><small>${new Date(m.created_at).toLocaleString()}</small></div>
             <div style="display:flex; align-items:center; gap: 10px;">
                 <b>${m.cambio > 0 ? '+' : ''}${m.cambio}</b>
-                <button class="btn-control btn-eliminar" onclick="eliminarRegistroHistorial('${m.id}')" style="padding: 2px 5px; width: auto; height: auto;">
-                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
-                </button>
+                <button class="btn-control btn-eliminar" onclick="eliminarRegistroHistorial('${m.id}')" style="padding: 2px 5px; width: auto; height: auto;"><i data-lucide="trash-2" style="width: 14px; height: 14px;"></i></button>
             </div>
         </div>
     `).join('');
@@ -149,93 +157,46 @@ async function cargarHistorial() {
 }
 
 async function eliminarRegistroHistorial(id) {
-    const confirmar = await solicitarConfirmacion("¿Eliminar este registro del historial?");
-    if (!confirmar) return;
+    if (!(await solicitarConfirmacion("¿Eliminar este registro?"))) return;
     await supabaseClient.from('historial').delete().eq('id', id);
     cargarHistorial();
 }
 
-// LÓGICA DE DESHACER (NUEVA)
-// --- 9. ACCIONES Y CRUD (CON BATCHING Y UNDO MEJORADO) ---
-
+// --- 9. LÓGICA DE ACTUALIZACIÓN Y UNDO ---
 async function ejecutarUndo() {
-    // 1. Identificar el bloque que tiene cambios pendientes
     const bloqueId = Object.keys(pendingChanges).find(id => pendingChanges[id] !== 0);
     if (!bloqueId) return;
-
     const b = estado.bloques.find(x => x.id === bloqueId);
     if (!b) return;
-
-    // 2. Cancelar el temporizador si aún está activo
-    if (changeTimers[bloqueId]) {
-        clearTimeout(changeTimers[bloqueId]);
-        changeTimers[bloqueId] = null;
-    }
-
-    // 3. Revertir la cantidad
-    const cambioTotal = pendingChanges[bloqueId];
-    b.cantidad -= cambioTotal;
-    
-    // 4. RESETEAR ANTES DE CUALQUIER OTRA COSA
-    // Esto asegura que el setTimeout vea que ya no hay cambios pendientes
+    if (changeTimers[bloqueId]) { clearTimeout(changeTimers[bloqueId]); changeTimers[bloqueId] = null; }
+    b.cantidad -= pendingChanges[bloqueId];
     pendingChanges[bloqueId] = 0;
-
-    // 5. Actualizar UI
     renderizarBloques();
     calcularTotalGlobal();
-    
-    // Cerrar el toast inmediatamente tras deshacer
-    const toast = document.getElementById('toast-undo');
-    toast.classList.add('oculto');
-    
+    document.getElementById('toast-undo').classList.add('oculto');
     mostrarToast("Acción deshecha");
 }
 
 async function actualizarCantidad(bloqueId, cambio) {
     const b = estado.bloques.find(x => x.id === bloqueId);
     if (!b || (b.cantidad + cambio < 0)) return;
-
-    // UI Inmediata
     b.cantidad += cambio;
     renderizarBloques();
     calcularTotalGlobal();
-
-    // Acumulación
     if (!pendingChanges[bloqueId]) pendingChanges[bloqueId] = 0;
     pendingChanges[bloqueId] += cambio;
-
-    // Feedback
     mostrarToast(`Cambio: ${pendingChanges[bloqueId] > 0 ? '+' : ''}${pendingChanges[bloqueId]}`);
-
-    // Limpiar temporizador previo
     if (changeTimers[bloqueId]) clearTimeout(changeTimers[bloqueId]);
-
-    // Nuevo temporizador
     changeTimers[bloqueId] = setTimeout(async () => {
-        // VERIFICACIÓN DE SEGURIDAD: 
-        // Si el usuario presionó Undo, pendingChanges[bloqueId] será 0, así que salimos.
         if (pendingChanges[bloqueId] === 0) return;
-
         const totalAcumulado = pendingChanges[bloqueId];
-        
-        // Ejecutar guardado en BD
         await supabaseClient.from('bloques').update({ cantidad: b.cantidad }).eq('id', bloqueId);
-        
         const pared = estado.paredes.find(p => p.id === b.pared_id);
-        await supabaseClient.from('historial').insert([{
-            bloque_id: b.id,
-            nombre_bloque: b.nombre,
-            nombre_pared: pared ? pared.nombre : "Desconocido",
-            cambio: totalAcumulado
-        }]);
-
-        // Solo limpiar después de guardar exitosamente
+        await supabaseClient.from('historial').insert([{ bloque_id: b.id, nombre_bloque: b.nombre, nombre_pared: pared?.nombre || "Desconocido", cambio: totalAcumulado }]);
         pendingChanges[bloqueId] = 0;
-        
-        // Ocultar toast si sigue visible
         document.getElementById('toast-undo').classList.add('oculto');
     }, 3000);
-}    
+}
 
 async function editarCantidadDirecta(bloqueId, nuevoValor) {
     const cantidadNueva = parseInt(nuevoValor);
@@ -252,13 +213,12 @@ async function editarCantidadDirecta(bloqueId, nuevoValor) {
     }
 }
 
-// --- 8. RENDERIZADO ---
+// --- 10. RENDERIZADO ---
 function renderizarParedes() {
     if (sortableInstance) { sortableInstance.destroy(); sortableInstance = null; }
     listaParedesUI.innerHTML = '';
-    const paredesFiltradas = estado.paredes.filter(p => !estado.busqueda || p.nombre.toLowerCase().includes(estado.busqueda));
-
-    paredesFiltradas.forEach((pared, index) => {
+    const filtradas = estado.paredes.filter(p => !estado.busqueda || p.nombre.toLowerCase().includes(estado.busqueda));
+    filtradas.forEach((pared, index) => {
         const li = document.createElement('li');
         li.className = `pared-item ${(!estado.busqueda && estado.paredActivaId === pared.id) ? 'activa' : ''}`;
         li.dataset.id = pared.id;
@@ -271,208 +231,179 @@ function renderizarParedes() {
                     <button class="btn-control" onclick="event.stopPropagation(); abrirModalEditar('${pared.id}')"><i data-lucide="pencil" style="width: 16px; height: 16px;"></i></button>
                     <button class="btn-control btn-eliminar" onclick="event.stopPropagation(); eliminarPared('${pared.id}', event)"><i data-lucide="trash-2" style="width: 16px; height: 16px;"></i></button>
                 </div>
-            </div>
-        `;
+            </div>`;
         listaParedesUI.appendChild(li);
     });
-
     lucide.createIcons();
-    sortableInstance = new Sortable(listaParedesUI, {
-        animation: 150, handle: '.pared-drag-handle',
-        onEnd: async (evt) => {
-            const elementos = Array.from(listaParedesUI.children);
-            elementos.forEach((li, index) => {
-                const pared = estado.paredes.find(p => p.id === li.dataset.id);
-                if (pared) pared.posicion = index;
-            });
-            estado.paredes.sort((a, b) => a.posicion - b.posicion);
-            for (let i = 0; i < estado.paredes.length; i++) {
-                await supabaseClient.from('paredes').update({ posicion: i }).eq('id', estado.paredes[i].id);
+    if (edicionParedesHabilitada) {
+        sortableInstance = new Sortable(listaParedesUI, {
+            animation: 150, handle: '.pared-drag-handle',
+            onEnd: async () => {
+                const elementos = Array.from(listaParedesUI.children);
+                for(let i=0; i<elementos.length; i++) {
+                    const pared = estado.paredes.find(p => p.id === elementos[i].dataset.id);
+                    if (pared) await supabaseClient.from('paredes').update({ posicion: i }).eq('id', pared.id);
+                }
+                await iniciarApp();
             }
-            renderizarParedes();
-        }
-    });
+        });
+    }
 }
 
 function renderizarBloques() {
     listaBloquesUI.innerHTML = '';
     const tituloParedUI = document.getElementById('titulo-pared-dinamico');
-    const totalContainerUI = document.getElementById('total-container');
+    if (estado.busqueda) tituloParedUI.innerHTML = `Pared: <b>Búsqueda</b>`;
+    else if (estado.paredActivaId) {
+        const p = estado.paredes.find(x => x.id === estado.paredActivaId);
+        tituloParedUI.innerHTML = `Pared: <b>${p ? p.nombre : 'Seleccionada'}</b>`;
+    } else tituloParedUI.innerHTML = `Pared: <b>Selecciona una</b>`;
 
-    if (estado.busqueda) {
-        tituloParedUI.innerHTML = `Pared: <b>Resultados de búsqueda</b>`;
-    } else if (estado.paredActivaId) {
-        const paredActiva = estado.paredes.find(p => p.id === estado.paredActivaId);
-        tituloParedUI.innerHTML = `Pared: <b>${paredActiva ? paredActiva.nombre : 'Seleccionada'}</b>`;
-    } else {
-        tituloParedUI.innerHTML = `Pared: <b>Selecciona una</b>`;
-    }
+    let mostrar = estado.busqueda ? 
+        estado.bloques.filter(b => b.nombre.toLowerCase().includes(estado.busqueda)) : 
+        estado.bloques.filter(b => b.pared_id === estado.paredActivaId);
 
-    let bloquesAMostrar = [];
-    if (estado.busqueda) {
-        bloquesAMostrar = estado.bloques.filter(b => {
-            const pared = estado.paredes.find(p => p.id === b.pared_id);
-            return b.nombre.toLowerCase().includes(estado.busqueda) || (pared && pared.nombre.toLowerCase().includes(estado.busqueda));
-        });
-    } else if (estado.paredActivaId) {
-        bloquesAMostrar = estado.bloques.filter(b => b.pared_id === estado.paredActivaId);
-    }
-
-    if (bloquesAMostrar.length === 0 && (estado.busqueda || estado.paredActivaId)) {
-        listaBloquesUI.innerHTML = '<p class="mensaje-vacio">No se encontraron resultados.</p>';
-    } else {
-        bloquesAMostrar.forEach(bloque => {
-            const paredEncontrada = estado.paredes.find(pa => pa.id === bloque.pared_id);
-            const nombrePared = paredEncontrada ? paredEncontrada.nombre : "Pared no encontrada";
-            const divRow = document.createElement('div');
-            divRow.className = 'bloque-row';
-            divRow.innerHTML = `
-                <div class="bloque-main-panel">
-                    <span class="bloque-nombre">Bloque: ${bloque.nombre}</span>
-                    <div class="controles-container">
-                        <input type="number" class="input-cantidad" value="${bloque.cantidad}" onchange="editarCantidadDirecta('${bloque.id}', this.value)">
-                        <div class="botones-fila">
-                            <button class="btn-sum-res btn-minus" onclick="actualizarCantidad('${bloque.id}', -1)">-</button>
-                            <button class="btn-sum-res btn-plus" onclick="actualizarCantidad('${bloque.id}', 1)">+</button>
-                        </div>
+    mostrar.forEach(bloque => {
+        const pared = estado.paredes.find(pa => pa.id === bloque.pared_id);
+        const div = document.createElement('div');
+        div.className = 'bloque-row';
+        div.innerHTML = `
+            <div class="bloque-main-panel">
+                <span class="bloque-nombre">Bloque: ${bloque.nombre}</span>
+                <div class="controles-container">
+                    <input type="number" class="input-cantidad" value="${bloque.cantidad}" onchange="editarCantidadDirecta('${bloque.id}', this.value)">
+                    <div class="botones-fila">
+                        <button class="btn-sum-res btn-minus" onclick="actualizarCantidad('${bloque.id}', -1)">-</button>
+                        <button class="btn-sum-res btn-plus" onclick="actualizarCantidad('${bloque.id}', 1)">+</button>
                     </div>
                 </div>
-                <div class="bloque-side">
-                    <div class="pared-meta">Pared:<br><b>${nombrePared}</b></div>
-                    <button class="btn-eliminar-bloque" onclick="eliminarBloque('${bloque.id}')"><i data-lucide="trash-2" style="width: 18px; height: 18px;"></i></button>
-                </div>
-            `;
-            listaBloquesUI.appendChild(divRow);
-        });
-    }
+            </div>
+            <div class="bloque-side">
+                <div class="pared-meta">Pared:<br><b>${pared?.nombre || "N/A"}</b></div>
+                <button class="btn-eliminar-bloque" onclick="eliminarBloque('${bloque.id}')"><i data-lucide="trash-2" style="width: 18px; height: 18px;"></i></button>
+            </div>`;
+        listaBloquesUI.appendChild(div);
+    });
     lucide.createIcons();
-    if (totalContainerUI) {
-        const total = bloquesAMostrar.reduce((sum, b) => sum + b.cantidad, 0);
-        totalContainerUI.innerHTML = `<div class="total-panel" style="margin-top:10px; font-weight:bold;">Total: ${total}</div>`;
-    }
 }
 
 function calcularTotalGlobal() {
-  const total = estado.bloques.reduce((sum, b) => sum + b.cantidad, 0);
-  totalGlobalUI.textContent = total;
+    totalGlobalUI.textContent = estado.bloques.reduce((sum, b) => sum + b.cantidad, 0);
 }
 
-function solicitarConfirmacion(mensaje) {
-  modalConfirm.classList.remove('oculto');
-  document.getElementById('confirm-msg').textContent = mensaje;
-  return new Promise((resolve) => {
-    const cerrarModal = () => {
-      modalConfirm.classList.add('oculto');
-      btnConfirmSi.removeEventListener('click', onSi);
-      btnConfirmNo.removeEventListener('click', onNo);
-    };
-    const onSi = () => { cerrarModal(); resolve(true); };
-    const onNo = () => { cerrarModal(); resolve(false); };
-    btnConfirmSi.addEventListener('click', onSi);
-    btnConfirmNo.addEventListener('click', onNo);
-  });
-}
-
+// --- 11. MODALES Y GESTIÓN DE ELEMENTOS ---
 async function eliminarPared(id, event) {
-  event.stopPropagation();
-  const confirmar = await solicitarConfirmacion("¿Seguro que quieres eliminar la pared?");
-  if (!confirmar) return;
-  estado.paredes = estado.paredes.filter(p => p.id !== id);
-  estado.bloques = estado.bloques.filter(b => b.pared_id !== id);
-  if (estado.paredActivaId === id) { estado.paredActivaId = null; }
-  renderizarParedes(); renderizarBloques(); calcularTotalGlobal();
-  await supabaseClient.from('paredes').delete().eq('id', id);
+    event.stopPropagation();
+    const confirmar = await solicitarConfirmacion("¿Seguro que quieres eliminar la pared?");
+    if (!confirmar) return;
+    estado.paredes = estado.paredes.filter(p => p.id !== id);
+    estado.bloques = estado.bloques.filter(b => b.pared_id !== id);
+    if (estado.paredActivaId === id) { estado.paredActivaId = null; }
+    renderizarParedes(); renderizarBloques(); calcularTotalGlobal();
+    await supabaseClient.from('paredes').delete().eq('id', id);
 }
 
 async function eliminarBloque(id) {
-  const confirmar = await solicitarConfirmacion("¿Seguro que quieres eliminar el bloque?");
-  if (!confirmar) return;
-  estado.bloques = estado.bloques.filter(b => b.id !== id);
-  renderizarBloques(); calcularTotalGlobal();
-  await supabaseClient.from('bloques').delete().eq('id', id);
+    const confirmar = await solicitarConfirmacion("¿Seguro que quieres eliminar el bloque?");
+    if (!confirmar) return;
+    estado.bloques = estado.bloques.filter(b => b.id !== id);
+    renderizarBloques(); calcularTotalGlobal();
+    await supabaseClient.from('bloques').delete().eq('id', id);
 }
 
-// --- 10. MODALES ---
+async function solicitarConfirmacion(mensaje) {
+    modalConfirm.classList.remove('oculto');
+    document.getElementById('confirm-msg').textContent = mensaje;
+    return new Promise((resolve) => {
+        const cerrar = () => { modalConfirm.classList.add('oculto'); btnConfirmSi.removeEventListener('click', onSi); btnConfirmNo.removeEventListener('click', onNo); };
+        const onSi = () => { cerrar(); resolve(true); };
+        const onNo = () => { cerrar(); resolve(false); };
+        btnConfirmSi.addEventListener('click', onSi);
+        btnConfirmNo.addEventListener('click', onNo);
+    });
+}
+
 btnNuevaPared.onclick = () => modal.classList.remove('oculto');
 btnCancelar.onclick = () => {
-  modal.classList.add('oculto');
-  contenedorBloquesDinamicos.innerHTML = '';
-  document.getElementById('input-nombre-pared').value = '';
-  document.getElementById('input-num-bloques').value = '';
-  btnGuardarPared.disabled = true;
-  estado.paredIdEnEdicion = null;
+    modal.classList.add('oculto');
+    contenedorBloquesDinamicos.innerHTML = '';
+    document.getElementById('input-nombre-pared').value = '';
+    document.getElementById('input-num-bloques').value = '';
+    btnGuardarPared.disabled = true;
+    estado.paredIdEnEdicion = null;
 };
 
 btnGenerarBloques.onclick = () => {
-  const numDeseado = parseInt(document.getElementById('input-num-bloques').value);
-  const container = contenedorBloquesDinamicos;
-  const inputsActuales = Array.from(container.querySelectorAll('.bloque-dinamico-input'));
-  const valoresPreservados = inputsActuales.map(input => ({ nombre: input.value, id: input.dataset.bloqueId || null, cantidad: input.dataset.cantidad || 0 }));
-  container.innerHTML = '';
-  for (let i = 0; i < numDeseado; i++) {
-    const input = document.createElement('input');
-    input.type = 'text'; input.className = 'input-form bloque-dinamico-input';
-    input.placeholder = `Bloque ${i + 1}`;
-    if (valoresPreservados[i]) { input.value = valoresPreservados[i].nombre; input.dataset.bloqueId = valoresPreservados[i].id; input.dataset.cantidad = valoresPreservados[i].cantidad; }
-    container.appendChild(input);
-  }
-  btnGuardarPared.disabled = false;
+    const numDeseado = parseInt(document.getElementById('input-num-bloques').value);
+    const container = contenedorBloquesDinamicos;
+    const inputsActuales = Array.from(container.querySelectorAll('.bloque-dinamico-input'));
+    const valoresPreservados = inputsActuales.map(input => ({ nombre: input.value, id: input.dataset.bloqueId || null, cantidad: input.dataset.cantidad || 0 }));
+    container.innerHTML = '';
+    for (let i = 0; i < numDeseado; i++) {
+        const input = document.createElement('input');
+        input.type = 'text'; input.className = 'input-form bloque-dinamico-input';
+        input.placeholder = `Bloque ${i + 1}`;
+        if (valoresPreservados[i]) { input.value = valoresPreservados[i].nombre; input.dataset.bloqueId = valoresPreservados[i].id; input.dataset.cantidad = valoresPreservados[i].cantidad; }
+        container.appendChild(input);
+    }
+    btnGuardarPared.disabled = false;
 };
 
 btnGuardarPared.onclick = async () => {
-  const nombre = document.getElementById('input-nombre-pared').value;
-  const inputs = document.querySelectorAll('.bloque-dinamico-input');
-  if (!nombre) { mostrarAlerta("El nombre es obligatorio"); return; }
-
-  if (estado.paredIdEnEdicion) {
-    const bloquesOriginales = estado.bloques.filter(b => b.pared_id === estado.paredIdEnEdicion);
-    const idsEnInputs = Array.from(inputs).filter(i => i.dataset.bloqueId).map(i => i.dataset.bloqueId);
-    const aEliminar = bloquesOriginales.filter(b => !idsEnInputs.includes(b.id));
-    const bloqueConDatos = aEliminar.find(b => parseInt(b.cantidad) > 0);
-    if (bloqueConDatos) { mostrarAlerta(`No puedes eliminar el bloque "${bloqueConDatos.nombre}" porque tiene unidades.`); return; }
-    for (let b of aEliminar) { await supabaseClient.from('bloques').delete().eq('id', b.id); }
-  }
-
-  btnGuardarPared.disabled = true;
-  if (estado.paredIdEnEdicion) {
-    await supabaseClient.from('paredes').update({ nombre }).eq('id', estado.paredIdEnEdicion);
-    for (let input of inputs) {
-      if (input.dataset.bloqueId) { await supabaseClient.from('bloques').update({ nombre: input.value }).eq('id', input.dataset.bloqueId); }
-      else { await supabaseClient.from('bloques').insert({ pared_id: estado.paredIdEnEdicion, nombre: input.value, cantidad: 0 }); }
+    const nombre = document.getElementById('input-nombre-pared').value;
+    const inputs = document.querySelectorAll('.bloque-dinamico-input');
+    if (!nombre) { mostrarAlerta("El nombre es obligatorio"); return; }
+    
+    if (estado.paredIdEnEdicion) {
+        const bloquesOriginales = estado.bloques.filter(b => b.pared_id === estado.paredIdEnEdicion);
+        const idsEnInputs = Array.from(inputs).filter(i => i.dataset.bloqueId).map(i => i.dataset.bloqueId);
+        const aEliminar = bloquesOriginales.filter(b => !idsEnInputs.includes(b.id));
+        const bloqueConDatos = aEliminar.find(b => parseInt(b.cantidad) > 0);
+        if (bloqueConDatos) { mostrarAlerta(`No puedes eliminar "${bloqueConDatos.nombre}" porque tiene unidades.`); return; }
+        for (let b of aEliminar) { await supabaseClient.from('bloques').delete().eq('id', b.id); }
     }
-  } else {
-    const { data: p } = await supabaseClient.from('paredes').insert([{ nombre }]).select().single();
-    const bloquesNuevos = Array.from(inputs).map(i => ({ pared_id: p.id, nombre: i.value, cantidad: 0 }));
-    await supabaseClient.from('bloques').insert(bloquesNuevos);
-  }
-  await iniciarApp();
-  btnCancelar.click();
+
+    btnGuardarPared.disabled = true;
+    if (estado.paredIdEnEdicion) {
+        await supabaseClient.from('paredes').update({ nombre }).eq('id', estado.paredIdEnEdicion);
+        for (let input of inputs) {
+            if (input.dataset.bloqueId) { await supabaseClient.from('bloques').update({ nombre: input.value }).eq('id', input.dataset.bloqueId); }
+            else { await supabaseClient.from('bloques').insert({ pared_id: estado.paredIdEnEdicion, nombre: input.value, cantidad: 0 }); }
+        }
+    } else {
+        const { data: p } = await supabaseClient.from('paredes').insert([{ nombre }]).select().single();
+        const bloquesNuevos = Array.from(inputs).map(i => ({ pared_id: p.id, nombre: i.value, cantidad: 0 }));
+        await supabaseClient.from('bloques').insert(bloquesNuevos);
+    }
+    await iniciarApp();
+    btnCancelar.click();
 };
 
 function abrirModalEditar(id) {
-  const pared = estado.paredes.find(p => p.id === id);
-  const bloquesDePared = estado.bloques.filter(b => b.pared_id === id);
-  if (!pared) return;
-  estado.paredIdEnEdicion = id;
-  document.getElementById('input-nombre-pared').value = pared.nombre;
-  document.getElementById('input-num-bloques').value = bloquesDePared.length;
-  contenedorBloquesDinamicos.innerHTML = '';
-  bloquesDePared.forEach(b => {
-    const input = document.createElement('input');
-    input.type = 'text'; input.className = 'input-form bloque-dinamico-input';
-    input.value = b.nombre; input.dataset.bloqueId = b.id; input.dataset.cantidad = b.cantidad;
-    contenedorBloquesDinamicos.appendChild(input);
-  });
-  modal.classList.remove('oculto');
-  btnGuardarPared.disabled = false;
-  btnGuardarPared.textContent = "Actualizar";
+    const pared = estado.paredes.find(p => p.id === id);
+    const bloquesDePared = estado.bloques.filter(b => b.pared_id === id);
+    if (!pared) return;
+    estado.paredIdEnEdicion = id;
+    document.getElementById('input-nombre-pared').value = pared.nombre;
+    document.getElementById('input-num-bloques').value = bloquesDePared.length;
+    contenedorBloquesDinamicos.innerHTML = '';
+    bloquesDePared.forEach(b => {
+        const input = document.createElement('input');
+        input.type = 'text'; input.className = 'input-form bloque-dinamico-input';
+        input.value = b.nombre; input.dataset.bloqueId = b.id; input.dataset.cantidad = b.cantidad;
+        contenedorBloquesDinamicos.appendChild(input);
+    });
+    modal.classList.remove('oculto');
+    btnGuardarPared.disabled = false;
+    btnGuardarPared.textContent = "Actualizar";
 }
 
 function mostrarAlerta(mensaje) {
-  const modalAlerta = document.getElementById('modal-alerta');
-  document.getElementById('alerta-msg').textContent = mensaje;
-  modalAlerta.classList.remove('oculto');
-  document.getElementById('btn-alerta-cerrar').onclick = () => modalAlerta.classList.add('oculto');
+    const modalAlerta = document.getElementById('modal-alerta');
+    document.getElementById('alerta-msg').textContent = mensaje;
+    modalAlerta.classList.remove('oculto');
+    document.getElementById('btn-alerta-cerrar').onclick = () => modalAlerta.classList.add('oculto');
 }
 
+// INICIALIZACIÓN FINAL
 iniciarApp();
