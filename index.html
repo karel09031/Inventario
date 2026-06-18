@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Mi Inventario</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -12,52 +15,103 @@
 
   <div class="app-container">
     
-<header class="app-header">
-    <div class="header-container">
-        <div class="header-left">
-            <h1 class="logo">Inventario</h1>
-            <div class="total-box">Total Global: <span id="global-total">0</span></div>
-        </div>
-        <button id="btn-toggle-vista" onclick="toggleModo()" class="btn-toggle-modo">Historial</button>
-    </div>
-</header>
+        <header class="app-header">
+            <div id="header-fecha" class="header-side"></div>
+            <div class="header-center">
+                <div class="logo">Inventaro</div>
+                <div class="total-box">
+                    <span class="total-label">Total Global: </span>
+                    <span id="global-total">0</span>
+                </div>
+            </div>
+            <!-- Botón de Historial con nuevo estilo -->
+            <button id="btn-toggle-vista" class="btn-deslizar header-side" onclick="toggleModo()">
+                <span class="slide-content" id="slide-default"><i data-lucide="history"></i></span>
+                <span class="slide-content" id="slide-alternate"><i data-lucide="home"></i></span>
+            </button>
+        </header>
 
-    <main class="app-layout">
+    <main class="app-layout" style="display: flex;">
       <section class="bloques-section">
-        <input type="text" id="buscador" class="search-bar" placeholder="🔍 Buscar pared o bloque...">
-
-        <div id="titulo-pared-dinamico" class="pared-header-panel">
-            Pared: <b>Selecciona una</b>
+        <div class="search-container">
+            <i data-lucide="search" class="search-icon"></i>
+            <input type="text" id="buscador" class="search-bar" placeholder="Buscar">
+        </div>
+        <div class="panel-header-con-controles">
+            <div id="titulo-pared-dinamico" class="pared-header-panel">
+                Pared: <b>Selecciona una</b>
+            </div>
+            <div class="controles-panel">
+                <button id="btn-ordenar-bloques" class="btn-control" title="Ordenar bloques">
+                    <i data-lucide="more-vertical"></i>
+                </button>
+                <div id="menu-ordenar" class="dropdown-menu oculto"></div>
+            </div>
         </div>
 
         <div id="lista-bloques" class="lista-bloques">
             <p class="mensaje-vacio">Selecciona una pared para ver sus bloques.</p>
         </div>
+        <!-- Panel de total de pared movido aquí abajo -->
+        <div id="total-pared-panel" class="pared-header-panel" style="background-color: #3b82f6; margin-top: 10px; flex: 0;">
+            <span class="panel-label">Total Pared:</span><b class="panel-value">0</b>
+        </div>
 
         <div id="total-container"></div>
       </section>
 
-      <aside class="paredes-section seccion-bloqueada">
+      <aside class="paredes-section">
         <div class="paredes-header">
-    <button id="btn-nueva-pared" class="btn-agregar-pared">
-        <i data-lucide="plus"></i>
+    <button id="btn-nueva-pared" class="btn-pushable btn-pushable-primary" onclick="abrirModalNuevaPared()" style="width: 100%; margin-bottom: 13px;">
+        <span class="btn-pushable-shadow"></span>
+        <span class="btn-pushable-edge"></span>
+        <span class="btn-pushable-front" style="padding: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <i data-lucide="plus-circle" style="width: 18px;"></i> Nueva Pared
+        </span>
     </button>
-    <div id="controles-edicion-paredes" style="display: flex; gap: 5px; margin-bottom: 10px;">
-        <button id="btn-activar-edicion" class="btn-control-edicion">Editar Paredes</button>
-        <button id="btn-cancelar-edicion" class="btn-control-edicion" style="display:none;">Cancelar Edición</button>
+    <div id="controles-edicion-paredes" style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <button id="btn-activar-edicion" class="btn-pushable btn-pushable-neutral btn-control-edicion">
+            <span class="btn-pushable-shadow"></span>
+            <span class="btn-pushable-edge"></span>
+            <span class="btn-pushable-front" style="padding: 8px 15px; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <i data-lucide="pencil" style="width: 14px;"></i> Editar
+            </span>
+        </button>
+        <button id="btn-cancelar-edicion" class="btn-pushable btn-pushable-cancel btn-control-edicion" style="display:none;">
+            <span class="btn-pushable-shadow"></span>
+            <span class="btn-pushable-edge"></span>
+            <span class="btn-pushable-front" style="padding: 8px 15px; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <i data-lucide="x-circle" style="width: 14px;"></i> Cancelar
+            </span>
+        </button>
     </div>
 </div>
-        <ul id="lista-paredes" class="lista-paredes"></ul>
+        <ul id="lista-paredes" class="lista-paredes seccion-bloqueada"></ul>
       </aside>
     </main>
 
     <section id="seccion-historial" class="historial-section" style="display: none;">
+    <!-- Nueva barra de acciones para selección múltiple -->
+    <div id="historial-acciones-seleccion" class="historial-acciones-bar oculto">
+        <button id="btn-cancelar-seleccion" class="btn-control" style="flex: 0; padding: 8px;"><i data-lucide="x"></i></button>
+        <div id="contador-seleccion" class="contador-seleccion-display">0 seleccionados</div>
+        <button id="btn-eliminar-seleccionados" class="btn-control btn-eliminar" style="flex: 0; padding: 8px;"><i data-lucide="trash-2"></i></button>
+    </div>
+
     <div id="fecha-actual" class="panel-fecha"></div>
 
     <div class="historial-header" style="padding: 10px; display: flex; gap: 5px;">
         <input type="date" id="fecha-inicio" class="input-form" style="margin:0;">
         <input type="date" id="fecha-fin" class="input-form" style="margin:0;">
-        <button onclick="cargarHistorial()" class="btn-guardar" style="margin:0;">Filtrar</button>
+        <!-- Botón de Filtrar con nuevo estilo -->
+        <button onclick="cargarHistorial()" class="btn-control btn-primary-simple">Filtrar</button>
+    </div>
+    <!-- Controles de búsqueda y acciones de historial -->
+    <div class="historial-controles">
+        <div class="search-container" style="flex: 1; margin: 0;">
+            <i data-lucide="search" class="search-icon"></i>
+            <input type="text" id="buscador-historial" class="search-bar" placeholder="Buscar por bloque, pared u hora...">
+        </div>
     </div>
     <div id="lista-historial" class="lista-bloques" style="padding: 10px;">
     </div>
@@ -74,24 +128,38 @@
             <label>Número de Bloques:</label>
             <input type="number" id="input-num-bloques" placeholder="Ej. 3" class="input-form" min="1" max="20">
             
-            <button id="btn-generar-bloques" class="btn-guardar">Generar Bloques</button>
+            <button id="btn-generar-bloques" class="btn-pushable btn-pushable-green" style="width: 100%;">
+                <span class="btn-pushable-shadow"></span>
+                <span class="btn-pushable-edge"></span>
+                <span class="btn-pushable-front">
+                    Generar Bloques
+                </span>
+            </button>
             
             <div id="contenedor-nombres-bloques" class="contenedor-bloques-dinamicos"></div>
         </div>
 
         <div class="modal-botones">
-          <button id="btn-cancelar" class="btn-cancelar">Cancelar</button>
-          <button id="btn-guardar-pared" class="btn-guardar" disabled>Guardar</button>
+          <button id="btn-cancelar" class="btn-pushable btn-pushable-cancel" style="flex: 1;">
+            <span class="btn-pushable-shadow"></span><span class="btn-pushable-edge"></span><span class="btn-pushable-front">Cancelar</span>
+          </button>
+          <button id="btn-guardar-pared" class="btn-pushable btn-pushable-primary" style="flex: 1;" disabled>
+            <span class="btn-pushable-shadow"></span><span class="btn-pushable-edge"></span><span class="btn-pushable-front">Guardar</span>
+          </button>
         </div>
       </div>
     </div>
 
     <div id="modal-alerta" class="modal oculto">
       <div class="modal-contenido">
-        <h3 id="alerta-titulo">Atención</h3>
+        <h3>Atención</h3>
         <p id="alerta-msg" style="margin-bottom: 20px; font-size: 1rem; font-weight: 500;"></p>
         <div class="modal-botones">
-          <button id="btn-alerta-cerrar" class="btn-guardar">Entendido</button>
+          <button id="btn-alerta-cerrar" class="btn-pushable btn-pushable-primary" style="flex: 1;">
+            <span class="btn-pushable-shadow"></span>
+            <span class="btn-pushable-edge"></span>
+            <span class="btn-pushable-front">Entendido</span>
+          </button>
         </div>
       </div>
     </div> 
@@ -100,17 +168,27 @@
       <div class="modal-contenido">
         <h3 id="confirm-msg">¿Estás seguro?</h3>
         <div class="modal-botones">
-          <button id="btn-confirm-no" class="btn-cancelar">No</button>
-          <button id="btn-confirm-si" class="btn-guardar">Sí</button>
+          <button id="btn-confirm-no" class="btn-pushable btn-pushable-cancel" style="flex: 1;">
+            <span class="btn-pushable-shadow"></span><span class="btn-pushable-edge"></span><span class="btn-pushable-front">No</span>
+          </button>
+          <button id="btn-confirm-si" class="btn-pushable btn-pushable-danger" style="flex: 1;">
+            <span class="btn-pushable-shadow"></span><span class="btn-pushable-edge"></span><span class="btn-pushable-front">Sí</span>
+          </button>
         </div>
       </div>
     </div>
 
-    <div id="toast-undo" class="toast-undo oculto">
-        <span id="toast-msg">Acción realizada</span>
-        <button onclick="ejecutarUndo()" style="cursor:pointer; background: white; border: none; padding: 5px 10px; border-radius: 4px;">Deshacer</button>
-    </div>
+    <!-- Nuevo Contenedor para Notificaciones (Toasts) -->
+    <div id="feedback-toast" class="feedback-toast oculto"></div>
 
+    <!-- Toast de Deshacer Rediseñado -->
+    <div id="toast-undo" class="toast-undo oculto">
+        <div class="toast-content">
+            <i data-lucide="info" class="toast-icon"></i>
+            <span id="toast-msg">Cambio registrado</span>
+        </div>
+        <button onclick="ejecutarUndo()" class="btn-control btn-undo">Deshacer</button>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
