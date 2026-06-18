@@ -2,85 +2,208 @@
     --primary: #4f46e5;
     --bg-body: #f1f5f9;
     --card-bg: #e3f2fd;
-    --border-color: #000000;
-    --border-width: 2px;
-    --radius: 3px;
+    --border-color: #9ca3af;
+    --border-width: 1px;
+    --radius: 8px;
     --gap: 10px;
 }
 
 /* Reset y Base */
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
 
 body { background-color: var(--bg-body); display: flex; justify-content: center; height: 100vh; }
 
 .app-container { 
     width: 100%; max-width: 450px; height: 100vh; background-color: #f0f0f0; 
     display: flex; flex-direction: column; overflow: hidden;
-    border-left: var(--border-width) solid var(--border-color);
-    border-right: var(--border-width) solid var(--border-color);
 }
 
 /* Header */
-.app-header { 
-    background: var(--primary); 
-    color: white; 
-    padding: 15px; 
-    border-bottom: var(--border-width) solid var(--border-color);
-}
-.header-container { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-}
-.header-left { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 4px; 
-}
-.logo { font-size: 1.5rem; line-height: 1; }
-.total-box { 
-    font-size: 0.85rem; 
-    font-weight: bold; 
-    background: rgba(0,0,0,0.2); 
-    padding: 2px 8px; 
-    border-radius: var(--radius);
-    width: fit-content;
+.app-header {
+    /* 1. Fondo transparente y sin bordes innecesarios */
+    background: transparent;
+    padding: 20px var(--gap) var(--gap); /* Más espacio superior */
+    display: flex;
+    justify-content: space-between;
+    position: relative; /* Necesario para el centrado absoluto */
+    align-items: center;
+    color: #333; /* Color de texto oscuro para contraste */
 }
 
+.header-center {
+    /* 2. Contenedor central para título y total */
+    display: flex;
+    position: absolute; /* Lo sacamos del flujo normal */
+    left: 50%;          /* Lo movemos al 50% del ancho del padre */
+    top: 50%;           /* Lo movemos al 50% del alto del padre */
+    transform: translate(-50%, -50%); /* Lo centramos perfectamente */
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.logo {
+    font-size: 1.5rem;
+    line-height: 1;
+    font-weight: 700;
+}
+
+.total-box {
+    font-size: 0.85rem;
+    color: #64748b; /* Color más suave para el total */
+}
+.total-box .total-label {
+    font-weight: 400;
+}
+#global-total {
+    font-weight: 700;
+}
+
+.header-side {
+    /* 3 y 4. Contenedores para fecha y botón */
+    width: 75px; /* Ancho para que la fecha entre en una línea */
+    font-weight: bold;
+    font-size: 0.7rem;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Ajuste específico para el botón de historial */
+#btn-toggle-vista.header-side {
+    width: 40px;  /* Tamaño cuadrado del botón */
+    height: 40px;
+    flex: none; /* Anula el estiramiento heredado */
+}
+
+/* --- NUEVO BOTÓN DESLIZANTE PARA HISTORIAL --- */
+.btn-deslizar {
+    background: #f59e0b; /* Mantenemos el color amarillo */
+    color: white;
+    position: relative;
+    overflow: hidden;
+    border: none;
+    padding: 0;
+    border-radius: 8px; /* Borde redondeado */
+}
+
+.btn-deslizar .slide-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+}
+
+/* Nuevo color cuando está en modo historial (icono de casa) */
+/* Hacemos la regla más específica para que funcione */
+#btn-toggle-vista.is-alternate {
+    background: #f59e0b; /* Amarillo más oscuro */
+}
+
+.btn-deslizar #slide-alternate {
+    position: absolute;
+    top: 0; left: 0;
+    transform: translateY(100%); /* Oculto abajo */
+}
 /* Layout */
+
+/* --- Layout --- */
 .app-layout { display: flex; flex: 1; overflow: hidden; }
 .bloques-section, .paredes-section { 
     flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: var(--gap); 
 }
-.bloques-section { background-color: #ebebeb; border-right: 1px solid #ccc; }
+.bloques-section { background-color: #f0f0f0; border-right: 1px solid #ccc; }
 
 /* --- SECCIÓN BLOQUES --- */
-.search-bar { 
-    width: 100%; padding: 10px; margin-bottom: var(--gap); 
-    border: var(--border-width) solid var(--border-color); outline: none; font-weight: bold;
+.search-container {
+    position: relative;
+    margin-bottom: var(--gap);
 }
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #000;
+    pointer-events: none;
+}
+
+.search-bar { 
+    width: 100%; padding: 10px 10px 10px 40px; 
+    border: var(--border-width) solid var(--border-color); outline: none; font-weight: bold; border-radius: var(--radius);
+}
+
+.panel-header-con-controles {
+    display: flex;
+    align-items: stretch; /* Estira los hijos para que tengan la misma altura */
+    gap: 8px;
+    margin-bottom: var(--gap);
+}
+
 .pared-header-panel { 
     padding: 8px; border: var(--border-width) solid var(--border-color); 
-    margin-bottom: var(--gap); font-weight: 700; text-align: center; background: #ef4444; color: white;
+    text-align: center; background: #ef4444; color: white; border-radius: var(--radius);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.2;
+}
+.pared-header-panel .panel-label {
+    font-weight: 400; /* Letra delgada */
+    font-size: 0.8rem;
+}
+.pared-header-panel .panel-value { font-weight: 700; /* Letra en negrita */ }
+
+.controles-panel {
+    position: relative;
+}
+
+.controles-panel .btn-control {
+    flex: 0;
+    padding: 8px;
+    background-color: #fff;
+    height: 100%; /* Hace que el botón ocupe toda la altura */
 }
 
 .bloque-row { 
     background-color: var(--card-bg); 
     border: var(--border-width) solid var(--border-color);
     padding: 8px; margin-bottom: var(--gap); 
-    display: flex; justify-content: space-between; align-items: center;
+    display: flex; justify-content: space-between; align-items: center; border-radius: var(--radius);
 }
 
 .bloque-main-panel { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-.bloque-nombre { font-weight: 700; font-size: 0.6rem; color: #000; text-transform: uppercase; }
+.bloque-nombre { font-size: 0.6rem; color: #000; text-transform: uppercase; }
+.bloque-nombre .label {
+    font-weight: 400; /* Fuente delgada */
+}
+.bloque-nombre .value {
+    font-weight: 700; /* Fuente en negrita */
+}
 
 .controles-container { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .input-cantidad { 
-    width: 86px; padding: 5px; border: var(--border-width) solid var(--border-color); 
-    text-align: center; font-size: 1.0rem; font-weight: 700;
+    width: 86px; padding: 5px; border: var(--border-width) solid var(--border-color); border-radius: var(--radius);
+    text-align: center; font-size: 1.0rem; font-weight: 700; 
 }
 .botones-fila { display: flex; gap: 6px; }
-.btn-sum-res { width: 40px; height: 30px; border: var(--border-width) solid var(--border-color); cursor: pointer; font-weight: 900; font-size: 1.0rem; }
+.btn-sum-res { 
+    width: 40px; height: 30px; border: var(--border-width) solid var(--border-color); 
+    cursor: pointer; display: flex; align-items: center; justify-content: center; 
+    border-radius: var(--radius);
+    transition: transform 0.1s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn-sum-res:active {
+    transform: scale(0.92);
+}
+
 .btn-plus { background: #60a5fa; color: white; }
 .btn-minus { background: #ef4444; color: white; }
 
@@ -94,32 +217,70 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
     min-width: 60px; 
 }
 .pared-meta { font-size: 0.7rem; text-align: center; font-weight: bold; line-height: 1.1; }
-.btn-eliminar-bloque { background: #ef4444; color: white; border: var(--border-width) solid var(--border-color); width: 30px; height: 30px; cursor: pointer; }
 
 /* --- SECCIÓN PAREDES --- */
-.btn-agregar-pared { 
-    background-color: var(--primary); color: white; border: var(--border-width) solid var(--border-color); 
-    padding: 3.5px; width: 100%; cursor: pointer; margin-bottom: var(--gap); font-weight: bold;
-}
-
 .pared-item { 
     background: var(--card-bg); padding: 8px; margin-bottom: var(--gap); 
-    border: var(--border-width) solid var(--border-color);
+    border: var(--border-width) solid var(--border-color); border-radius: var(--radius);
     display: flex; align-items: center; gap: 8px;
 }
 .pared-drag-handle { cursor: grab; color: #000; padding: 0 1px; }
-.pared-numero { font-weight: bold; width: 7px; }
+.pared-numero { font-weight: bold; width: 8px; }
 .pared-right-panel { display: flex; flex-direction: column; flex: 1; gap: 5px; }
 .pared-input-nombre { 
     width: 100%; border: var(--border-width) solid var(--border-color); 
-    padding: 6px; font-weight: 700; outline: none;
+    padding: 6px; font-weight: 700; outline: none; border-radius: var(--radius);
+    margin-bottom: 5px; /* Espacio adicional para separar de los botones */
 }
 .pared-controles { display: flex; gap: 5px; }
-.btn-control { 
-    border: var(--border-width) solid var(--border-color); padding: 6px; 
-    cursor: pointer; flex: 1; display: flex; justify-content: center; background: #ffffff;
+.btn-control {
+    border: var(--border-width) solid var(--border-color);
+    padding: 6px;
+    cursor: pointer;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #ffffff;
+    border-radius: var(--radius);
+    transition: transform 0.1s ease, filter 0.1s ease;
+    -webkit-tap-highlight-color: transparent;
 }
+.btn-control:active { transform: scale(0.92); }
 .btn-control.btn-eliminar { background: #ef4444; color: white; }
+
+/* Nuevo estilo para botones simples con color primario */
+.btn-control.btn-primary-simple {
+    background-color: var(--primary);
+    color: white;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: white;
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--radius);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    z-index: 100;
+    overflow: hidden;
+    min-width: 180px;
+}
+.dropdown-menu a {
+    display: block;
+    padding: 10px 15px;
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+}
+.dropdown-menu a:hover { background-color: #f0f0f0; }
+.dropdown-menu.oculto { display: none; }
+.dropdown-menu a.activa {
+    background-color: var(--primary);
+    color: white;
+    font-weight: bold;
+}
 
 /* --- MODALES --- */
 .modal { 
@@ -134,7 +295,7 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
 
 .modal-contenido { 
     background: white; padding: 20px; width: 100%; max-width: 400px; 
-    border: var(--border-width) solid var(--border-color);
+    border: var(--border-width) solid var(--border-color); border-radius: var(--radius);
     display: flex; flex-direction: column;
     max-height: 85vh;
     box-shadow: 8px 8px 0px 0px var(--border-color); 
@@ -156,7 +317,7 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
 
 .input-form { 
     width: 100%; padding: 12px; border: var(--border-width) solid var(--border-color); 
-    margin-bottom: 15px; font-weight: bold; outline: none;
+    margin-bottom: 15px; font-weight: bold; outline: none; border-radius: var(--radius);
     transition: background 0.2s;
 }
 
@@ -184,8 +345,6 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
 .btn-cancelar { background: #fee2e2; color: #b91c1c; }
 .btn-cancelar:hover { background: #fecaca; }
 
-#alerta-titulo { color: #ef4444; border-bottom: 2px solid #ef4444; }
-
 .pared-input-nombre {
     cursor: pointer; 
     background: transparent;
@@ -200,19 +359,60 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
 .historial-section { background: #f0f0f0; height: 100%; overflow-y: auto; flex: 1; }
 .historial-row { 
     background: #fff; padding: 12px; margin-bottom: 10px; 
-    border: var(--border-width) solid var(--border-color);
+    border: var(--border-width) solid var(--border-color); border-radius: var(--radius);
     display: flex; justify-content: space-between; align-items: center; 
 }
-.btn-toggle-modo { 
-    background: #f59e0b; color: white; border: var(--border-width) solid var(--border-color); 
-    padding: 5px 10px; cursor: pointer; font-weight: bold; border-radius: var(--radius);
+.historial-row.seleccionado {
+    background-color: #dbeafe; /* Un azul claro para indicar selección */
+    border-color: var(--primary);
 }
+.historial-controles {
+    padding: 0 10px 10px 10px; display: flex; gap: 5px; align-items: center;
+}
+
+/* --- NUEVA BARRA DE ACCIONES DE HISTORIAL --- */
+.historial-acciones-bar {
+    position: sticky;
+    top: 0;
+    background-color: var(--primary);
+    color: white;
+    padding: 8px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 101; /* Por encima del contenido */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.historial-acciones-bar.oculto { display: none; }
+.contador-seleccion-display {
+    font-weight: bold;
+}
+.historial-acciones-bar .btn-control { background-color: rgba(255,255,255,0.2); color: white; }
+.historial-acciones-bar .btn-eliminar { background-color: #ef4444; }
 
 .toast-undo { 
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
-    background: #333; color: white; padding: 15px; border-radius: 5px; 
-    display: flex; gap: 15px; z-index: 10000; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    border: 2px solid white;
+    background: #333; 
+    color: white; 
+    padding: 10px 10px 10px 16px; 
+    border-radius: var(--radius); 
+    display: flex; gap: 10px; align-items: center;
+    z-index: 10000; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    width: calc(100% - 40px);
+    max-width: 400px;
+    justify-content: space-between;
+}
+.toast-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.toast-icon {
+    color: #9ca3af;
+}
+.btn-undo {
+    background-color: #555; color: white; flex: 0; padding: 6px 12px;
 }
 .toast-undo.oculto { display: none !important; }
 
@@ -220,7 +420,7 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
 .panel-fecha {
     background: #e2e8f0;
     padding: 10px;
-    margin: 10px 10px 0 10px;
+    margin: 10px;
     border: var(--border-width) solid var(--border-color);
     text-align: center;
     font-weight: bold;
@@ -232,7 +432,7 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
 .pared-item.activa {
     background-color: var(--primary) !important;
     color: white !important;
-    border-color: #000 !important;
+    border-color: #312e81 !important;
 }
 
 /* Ajuste del input dentro de la pared activa para que se vea bien */
@@ -242,39 +442,130 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
     border-color: white;
 }
 /* Nueva clase para bloquear la sección */
-.seccion-bloqueada {
-    pointer-events: none;
-    opacity: 0.6;
-}
 
-.btn-control-edicion {
-    flex: 1; padding: 8px; cursor: pointer; border: var(--border-width) solid var(--border-color);
-    font-weight: bold; background: #fff;
+/* --- NUEVO FEEDBACK TOAST --- */
+.feedback-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 10px;
+    right: 10px;
+    padding: 12px 16px;
+    background-color: #333;
+    color: white;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 10001;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transform: translateY(200%);
+    transition: transform 0.4s cubic-bezier(.21,.96,.56,1);
 }
+.feedback-toast.show { transform: translateY(0); }
+.feedback-toast.oculto { display: none; }
 /* --- AGREGAR ESTO AL FINAL DE TU STYLES.CSS --- */
 
 /* Mejora visual para cuando la sección está bloqueada */
-.seccion-bloqueada {
-    pointer-events: none; /* Bloquea todos los clics */
-    opacity: 0.6;         /* Atenúa la apariencia */
-    filter: grayscale(0.5); /* Desatura los colores */
-    transition: opacity 0.3s ease;
+/* Cuando la lista está bloqueada, ocultamos los controles de edición */
+.lista-paredes.seccion-bloqueada .pared-drag-handle,
+.lista-paredes.seccion-bloqueada .pared-controles {
+    display: none !important;
 }
 
 /* Estilo para los botones de control de edición */
 .btn-control-edicion {
     flex: 1; 
     padding: 8px; 
-    cursor: pointer; 
-    border: var(--border-width) solid var(--border-color);
     font-weight: bold; 
-    background: #fff;
     transition: background 0.2s;
 }
 
+/* Este estilo ya no es necesario con los botones pushable */
 .btn-control-edicion:hover {
     background: #f0f0f0;
 }
+
+/* --- BOTONES REALISTAS (PUSHABLE) --- */
+/* Estilo base para el contenedor del botón */
+.btn-pushable {
+    position: relative;
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    outline-offset: 4px;
+    transition: filter 250ms;
+    -webkit-tap-highlight-color: transparent; /* Evita el destello en móviles */
+}
+
+/* La cara frontal del botón */
+.btn-pushable-front {
+    display: block;
+    position: relative;
+    padding: 8px 8px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: white;
+    transform: translateY(-4px); /* Lo eleva para crear profundidad */
+    transition: transform 600ms cubic-bezier(.3, .7, .4, 1);
+    will-change: transform;
+}
+
+/* El borde/profundidad del botón */
+.btn-pushable-edge {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+}
+
+/* La sombra debajo del botón */
+.btn-pushable-shadow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    background: hsl(0deg 0% 0% / 0.15);
+    transform: translateY(2px); /* Posiciona la sombra */
+    transition: transform 600ms cubic-bezier(.3, .7, .4, 1);
+}
+
+/* Colores específicos */
+.btn-pushable-primary .btn-pushable-front { background: var(--primary); }
+.btn-pushable-primary .btn-pushable-edge { background: #312e81; }
+
+.btn-pushable-green .btn-pushable-front { background: #16a34a; }
+.btn-pushable-green .btn-pushable-edge { background: #166534; }
+
+.btn-pushable-warning .btn-pushable-front { background: #f59e0b; }
+.btn-pushable-warning .btn-pushable-edge { background: #b45309; }
+
+.btn-pushable-cancel .btn-pushable-front { background: #a8a29e; color: #1c1917; }
+.btn-pushable-cancel .btn-pushable-edge { background: #57534e; }
+
+.btn-pushable-danger .btn-pushable-front { background: #ef4444; }
+.btn-pushable-danger .btn-pushable-edge { background: #b91c1c; }
+
+.btn-pushable-neutral .btn-pushable-front { background: #ffffff; color: #1c1917; border: 0px solid var(--primary); }
+.btn-pushable-neutral .btn-pushable-edge { background: #a1a1aa; }
+
+/* Interacciones */
+.btn-pushable:hover .btn-pushable-front { transform: translateY(-6px); }
+.btn-pushable:hover .btn-pushable-shadow { transform: translateY(4px); }
+.btn-pushable:active .btn-pushable-front { transform: translateY(-2px); }
+.btn-pushable:active .btn-pushable-shadow { transform: translateY(1px); }
+
+/* Ajuste para el botón de historial más pequeño */
+.btn-pushable.btn-header-icon .btn-pushable-front {
+    padding: 8px;
+}
+
+.btn-pushable:disabled { filter: grayscale(1); cursor: not-allowed; }
 
 /* Asegurar que el contenedor padre de las paredes tenga posición relativa para el bloqueo */
 .paredes-section {
@@ -293,24 +584,4 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
 }
 
 /* 2. Bloqueamos solo la lista de paredes y su contenido */
-.seccion-bloqueada .lista-paredes {
-    pointer-events: none;
-    opacity: 0.6;
-    filter: grayscale(0.5);
-    transition: all 0.3s ease;
-}
-
 /* 3. Aseguramos que el botón no se vea afectado por la opacidad del padre */
-.btn-control-edicion {
-    flex: 1; 
-    padding: 8px; 
-    cursor: pointer; 
-    border: var(--border-width) solid var(--border-color);
-    font-weight: bold; 
-    background: #fff;
-    transition: background 0.2s;
-}
-
-.btn-control-edicion:hover {
-    background: #f0f0f0;
-}
