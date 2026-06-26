@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Mi Inventario</title>
   <link rel="stylesheet" href="styles.css">
+  <!-- Ícono para la pestaña del navegador -->
+  <link rel="icon" type="image/png" href="favicon-blanco.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -53,36 +55,21 @@
             <p class="mensaje-vacio">Selecciona una pared para ver sus bloques.</p>
         </div>
         <!-- Panel de total de pared movido aquí abajo -->
-        <div id="total-pared-panel" class="pared-header-panel" style="background-color: #3b82f6; margin-top: 10px; flex: 0;">
+        <div id="total-pared-panel" class="pared-header-panel" style="background-color: var(--card-bg); color: #333; margin-top: 10px; flex: 0;">
             <span class="panel-label">Total Pared:</span><b class="panel-value">0</b>
         </div>
 
-        <div id="total-container"></div>
       </section>
 
       <aside class="paredes-section">
         <div class="paredes-header">
-    <button id="btn-nueva-pared" class="btn-pushable btn-pushable-primary" onclick="abrirModalNuevaPared()" style="width: 100%; margin-bottom: 13px;">
-        <span class="btn-pushable-shadow"></span>
-        <span class="btn-pushable-edge"></span>
-        <span class="btn-pushable-front" style="padding: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <i data-lucide="plus-circle" style="width: 18px;"></i> Nueva Pared
-        </span>
-    </button>
-    <div id="controles-edicion-paredes" style="display: flex; gap: 10px; margin-bottom: 10px;">
-        <button id="btn-activar-edicion" class="btn-pushable btn-pushable-neutral btn-control-edicion">
-            <span class="btn-pushable-shadow"></span>
-            <span class="btn-pushable-edge"></span>
-            <span class="btn-pushable-front" style="padding: 8px 15px; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                <i data-lucide="pencil" style="width: 14px;"></i> Editar
-            </span>
-        </button>
-        <button id="btn-cancelar-edicion" class="btn-pushable btn-pushable-cancel btn-control-edicion" style="display:none;">
-            <span class="btn-pushable-shadow"></span>
-            <span class="btn-pushable-edge"></span>
-            <span class="btn-pushable-front" style="padding: 8px 15px; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                <i data-lucide="x-circle" style="width: 14px;"></i> Cancelar
-            </span>
+    <button id="btn-nueva-pared" class="btn-simple-zoom" onclick="abrirModalNuevaPared()">
+        <i data-lucide="plus-circle"></i> Nueva Pared
+    </button>    
+    <div id="controles-edicion-paredes" style="margin-bottom: 10px;">
+        <button id="btn-toggle-edicion" class="btn-deslizar btn-edicion">
+            <span class="slide-content" id="slide-editar"><i data-lucide="pencil"></i> Editar</span>
+            <span class="slide-content" id="slide-cancelar"><i data-lucide="x"></i> Cancelar</span>
         </button>
     </div>
 </div>
@@ -100,21 +87,28 @@
 
     <div id="fecha-actual" class="panel-fecha"></div>
 
-    <div class="historial-header" style="padding: 10px; display: flex; gap: 5px;">
-        <input type="date" id="fecha-inicio" class="input-form" style="margin:0;">
-        <input type="date" id="fecha-fin" class="input-form" style="margin:0;">
-        <!-- Botón de Filtrar con nuevo estilo -->
-        <button onclick="cargarHistorial()" class="btn-control btn-primary-simple">Filtrar</button>
-    </div>
     <!-- Controles de búsqueda y acciones de historial -->
     <div class="historial-controles">
         <div class="search-container" style="flex: 1; margin: 0;">
             <i data-lucide="search" class="search-icon"></i>
             <input type="text" id="buscador-historial" class="search-bar" placeholder="Buscar por bloque, pared u hora...">
         </div>
+        <!-- Contador de movimientos de hoy -->
+        <div id="contador-movimientos-hoy" class="contador-movimientos">0</div>
+        <!-- Nuevo botón de filtro con menú desplegable -->
+        <div class="controles-panel">
+            <button id="btn-filtro-historial" class="btn-control" title="Filtrar historial"><i data-lucide="sliders-horizontal"></i></button>
+            <div id="menu-filtro-historial" class="dropdown-menu oculto"></div>
+        </div>
     </div>
-    <div id="lista-historial" class="lista-bloques" style="padding: 10px;">
+    <div id="historial-filtros-fecha" class="historial-header" style="padding: 0 10px 10px; display: none; gap: 5px;">
+        <input type="date" id="fecha-inicio" class="input-form" style="margin:0;">
+        <input type="date" id="fecha-fin" class="input-form" style="margin:0;">
     </div>
+    <!-- Nuevo contenedor para la lista para gestionar el scroll de forma independiente -->
+    <div class="lista-historial-container">
+        <div id="lista-historial"></div>
+    </div>    
 </section>
 
     <div id="modal-pared" class="modal oculto">
@@ -128,23 +122,19 @@
             <label>Número de Bloques:</label>
             <input type="number" id="input-num-bloques" placeholder="Ej. 3" class="input-form" min="1" max="20">
             
-            <button id="btn-generar-bloques" class="btn-pushable btn-pushable-green" style="width: 100%;">
-                <span class="btn-pushable-shadow"></span>
-                <span class="btn-pushable-edge"></span>
-                <span class="btn-pushable-front">
-                    Generar Bloques
-                </span>
+            <button id="btn-generar-bloques" class="btn-modal btn-modal-secondary">
+                <i data-lucide="wand-2"></i> Generar Bloques
             </button>
             
             <div id="contenedor-nombres-bloques" class="contenedor-bloques-dinamicos"></div>
         </div>
 
         <div class="modal-botones">
-          <button id="btn-cancelar" class="btn-pushable btn-pushable-cancel" style="flex: 1;">
-            <span class="btn-pushable-shadow"></span><span class="btn-pushable-edge"></span><span class="btn-pushable-front">Cancelar</span>
+          <button id="btn-cancelar" class="btn-modal btn-modal-cancel">
+            <i data-lucide="x"></i> Cancelar
           </button>
-          <button id="btn-guardar-pared" class="btn-pushable btn-pushable-primary" style="flex: 1;" disabled>
-            <span class="btn-pushable-shadow"></span><span class="btn-pushable-edge"></span><span class="btn-pushable-front">Guardar</span>
+          <button id="btn-guardar-pared" class="btn-modal btn-modal-primary" disabled>
+            <i data-lucide="save"></i> Guardar
           </button>
         </div>
       </div>
@@ -153,12 +143,10 @@
     <div id="modal-alerta" class="modal oculto">
       <div class="modal-contenido">
         <h3>Atención</h3>
-        <p id="alerta-msg" style="margin-bottom: 20px; font-size: 1rem; font-weight: 500;"></p>
+        <p id="alerta-msg" style="font-size: 1rem; font-weight: 500;"></p>
         <div class="modal-botones">
-          <button id="btn-alerta-cerrar" class="btn-pushable btn-pushable-primary" style="flex: 1;">
-            <span class="btn-pushable-shadow"></span>
-            <span class="btn-pushable-edge"></span>
-            <span class="btn-pushable-front">Entendido</span>
+          <button id="btn-alerta-cerrar" class="btn-modal btn-modal-primary">
+            <i data-lucide="check"></i> Entendido
           </button>
         </div>
       </div>
@@ -168,11 +156,11 @@
       <div class="modal-contenido">
         <h3 id="confirm-msg">¿Estás seguro?</h3>
         <div class="modal-botones">
-          <button id="btn-confirm-no" class="btn-pushable btn-pushable-cancel" style="flex: 1;">
-            <span class="btn-pushable-shadow"></span><span class="btn-pushable-edge"></span><span class="btn-pushable-front">No</span>
+          <button id="btn-confirm-no" class="btn-modal btn-modal-cancel">
+            <i data-lucide="x"></i> No
           </button>
-          <button id="btn-confirm-si" class="btn-pushable btn-pushable-danger" style="flex: 1;">
-            <span class="btn-pushable-shadow"></span><span class="btn-pushable-edge"></span><span class="btn-pushable-front">Sí</span>
+          <button id="btn-confirm-si" class="btn-modal btn-modal-danger">
+            <i data-lucide="check"></i> Sí
           </button>
         </div>
       </div>
