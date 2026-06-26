@@ -1,67 +1,70 @@
+/* ==========================================================================
+   1. Variables Globales y Configuración Base
+   ========================================================================== */
+
 :root {
-    --primary: #4f46e5;
-    --bg-body: #f1f5f9;
-    --card-bg: #e3f2fd;
-    --border-color: #9ca3af;
+    /* Paleta de colores principal */
+    --primary: #cba6f7;
+    --danger: #f38ba8;
+    --success: #a6e3a1;
+    --warning: #fab387;
+    --accent: #89b4fa;
+    /* Fondos y bordes */
+    --bg-body: #1e1e2e;
+    --card-bg: #313244;
+    --border-color: #45475a;
+    /* Textos */
+    --text-primary: #cdd6f4;
+    --text-secondary: #a6adc8;
+    /* Tamaños y espaciados */
     --border-width: 1px;
     --radius: 8px;
     --gap: 10px;
 }
 
-/* Reset y Base */
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
-
-body { background-color: var(--bg-body); display: flex; justify-content: center; height: 100vh; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; color: var(--text-primary); }
+body { background-color: var(--bg-body); display: flex; justify-content: center; height: 100vh; color: var(--text-primary); }
 
 .app-container { 
-    width: 100%; max-width: 450px; height: 100vh; background-color: #f0f0f0; 
+    width: 100%; max-width: 450px; height: 100vh; background-color: var(--bg-body); 
     display: flex; flex-direction: column; overflow: hidden;
 }
 
-/* Header */
+/* ==========================================================================
+   2. Cabecera (Header)
+   ========================================================================== */
+
 .app-header {
-    /* 1. Fondo transparente y sin bordes innecesarios */
     background: transparent;
-    padding: 20px var(--gap) var(--gap); /* Más espacio superior */
+    padding: 20px var(--gap) var(--gap);
     display: flex;
     justify-content: space-between;
-    position: relative; /* Necesario para el centrado absoluto */
+    position: relative;
     align-items: center;
-    color: #333; /* Color de texto oscuro para contraste */
 }
 
 .header-center {
-    /* 2. Contenedor central para título y total */
     display: flex;
-    position: absolute; /* Lo sacamos del flujo normal */
-    left: 50%;          /* Lo movemos al 50% del ancho del padre */
-    top: 50%;           /* Lo movemos al 50% del alto del padre */
-    transform: translate(-50%, -50%); /* Lo centramos perfectamente */
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     flex-direction: column;
     align-items: center;
     gap: 2px;
 }
 
-.logo {
-    font-size: 1.5rem;
-    line-height: 1;
-    font-weight: 700;
-}
+.logo { font-size: 1.5rem; line-height: 1; font-weight: 700; }
 
 .total-box {
     font-size: 0.85rem;
-    color: #64748b; /* Color más suave para el total */
+    color: var(--text-secondary);
 }
-.total-box .total-label {
-    font-weight: 400;
-}
-#global-total {
-    font-weight: 700;
-}
+.total-box .total-label { font-weight: 400; }
+#global-total { font-weight: 700; }
 
 .header-side {
-    /* 3 y 4. Contenedores para fecha y botón */
-    width: 75px; /* Ancho para que la fecha entre en una línea */
+    width: 75px;
     font-weight: bold;
     font-size: 0.7rem;
     text-align: center;
@@ -70,22 +73,25 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
     justify-content: center;
 }
 
-/* Ajuste específico para el botón de historial */
 #btn-toggle-vista.header-side {
-    width: 40px;  /* Tamaño cuadrado del botón */
+    width: 40px;
     height: 40px;
-    flex: none; /* Anula el estiramiento heredado */
+    flex: none;
 }
 
-/* --- NUEVO BOTÓN DESLIZANTE PARA HISTORIAL --- */
+/* ==========================================================================
+   3. Botones Deslizantes (Sliding Buttons)
+   ========================================================================== */
+
 .btn-deslizar {
-    background: #f59e0b; /* Mantenemos el color amarillo */
-    color: white;
+    background: var(--warning);
+    color: var(--text-on-accent);
     position: relative;
     overflow: hidden;
     border: none;
     padding: 0;
-    border-radius: 8px; /* Borde redondeado */
+    border-radius: 8px;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .btn-deslizar .slide-content {
@@ -94,30 +100,42 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.3s ease;
+    transition: transform 0.4s cubic-bezier(0.2, 1, 0.3, 1);
 }
 
-/* Nuevo color cuando está en modo historial (icono de casa) */
-/* Hacemos la regla más específica para que funcione */
-#btn-toggle-vista.is-alternate {
-    background: #f59e0b; /* Amarillo más oscuro */
-}
-
-.btn-deslizar #slide-alternate {
+.btn-deslizar #slide-alternate, .btn-deslizar #slide-cancelar {
     position: absolute;
     top: 0; left: 0;
-    transform: translateY(100%); /* Oculto abajo */
+    transform: translateY(100%);
 }
-/* Layout */
 
-/* --- Layout --- */
+#btn-toggle-vista.is-alternate { background: var(--accent); }
+
+.btn-edicion {
+    width: 100%;
+    background: var(--card-bg);
+    color: var(--text-primary);
+}
+.btn-edicion.is-alternate { background: var(--danger); color: var(--text-on-accent); }
+.btn-edicion .slide-content { 
+    gap: 6px; 
+    font-size: 0.9rem; 
+    font-weight: bold; 
+    padding: 10px 15px;
+}
+.btn-edicion .slide-content i { width: 14px; height: 14px; }
+
+/* ==========================================================================
+   4. Layout Principal y Secciones
+   ========================================================================== */
+
 .app-layout { display: flex; flex: 1; overflow: hidden; }
 .bloques-section, .paredes-section { 
     flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: var(--gap); 
+    background-color: var(--bg-body);
 }
-.bloques-section { background-color: #f0f0f0; border-right: 1px solid #ccc; }
+.bloques-section { border-right: 1px solid var(--border-color); }
 
-/* --- SECCIÓN BLOQUES --- */
 .search-container {
     position: relative;
     margin-bottom: var(--gap);
@@ -128,36 +146,35 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
     left: 12px;
     top: 50%;
     transform: translateY(-50%);
-    color: #000;
+    color: var(--text-secondary);
     pointer-events: none;
 }
 
 .search-bar { 
-    width: 100%; padding: 10px 10px 10px 40px; 
-    border: var(--border-width) solid var(--border-color); outline: none; font-weight: bold; border-radius: var(--radius);
+    width: 100%; padding: 10px 10px 10px 40px;
+    border: 1px solid var(--border-color); outline: none; font-weight: bold; border-radius: var(--radius); height: 100%;
+    background-color: var(--card-bg);
 }
 
 .panel-header-con-controles {
     display: flex;
-    align-items: stretch; /* Estira los hijos para que tengan la misma altura */
+    align-items: stretch;
     gap: 8px;
     margin-bottom: var(--gap);
 }
 
 .pared-header-panel { 
-    padding: 8px; border: var(--border-width) solid var(--border-color); 
-    text-align: center; background: #ef4444; color: white; border-radius: var(--radius);
+    padding: 8px;
+    text-align: center; 
+    background: var(--danger); color: var(--text-on-accent); border-radius: var(--radius);
     flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: center;
     line-height: 1.2;
 }
-.pared-header-panel .panel-label {
-    font-weight: 400; /* Letra delgada */
-    font-size: 0.8rem;
-}
-.pared-header-panel .panel-value { font-weight: 700; /* Letra en negrita */ }
+.pared-header-panel .panel-label { font-weight: 400; font-size: 0.8rem; }
+.pared-header-panel .panel-value { font-weight: 700; }
 
 .controles-panel {
     position: relative;
@@ -165,49 +182,41 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
 
 .controles-panel .btn-control {
     flex: 0;
-    padding: 8px;
-    background-color: #fff;
-    height: 100%; /* Hace que el botón ocupe toda la altura */
+    padding: 10px;
+    background-color: var(--card-bg);
+    height: 100%;
 }
 
 .bloque-row { 
-    background-color: var(--card-bg); 
-    border: var(--border-width) solid var(--border-color);
+    background-color: var(--card-bg);
     padding: 8px; margin-bottom: var(--gap); 
     display: flex; justify-content: space-between; align-items: center; border-radius: var(--radius);
 }
 
 .bloque-main-panel { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-.bloque-nombre { font-size: 0.6rem; color: #000; text-transform: uppercase; }
-.bloque-nombre .label {
-    font-weight: 400; /* Fuente delgada */
-}
-.bloque-nombre .value {
-    font-weight: 700; /* Fuente en negrita */
-}
+.bloque-nombre { font-size: 0.6rem; color: var(--text-primary); text-transform: uppercase; }
+.bloque-nombre .label { font-weight: 400; }
+.bloque-nombre .value { font-weight: 700; }
 
 .controles-container { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .input-cantidad { 
-    width: 86px; padding: 5px; border: var(--border-width) solid var(--border-color); border-radius: var(--radius);
+    width: 86px; padding: 5px; border: 1px solid var(--border-color); border-radius: var(--radius); background-color: var(--bg-body);
     text-align: center; font-size: 1.0rem; font-weight: 700; 
 }
 .botones-fila { display: flex; gap: 6px; }
 .btn-sum-res { 
-    width: 40px; height: 30px; border: var(--border-width) solid var(--border-color); 
+    width: 40px; height: 30px; border: none; 
     cursor: pointer; display: flex; align-items: center; justify-content: center; 
     border-radius: var(--radius);
     transition: transform 0.1s ease;
     -webkit-tap-highlight-color: transparent;
 }
 
-.btn-sum-res:active {
-    transform: scale(0.92);
-}
+.btn-sum-res:active { transform: scale(0.92); }
 
-.btn-plus { background: #60a5fa; color: white; }
-.btn-minus { background: #ef4444; color: white; }
+.btn-plus { background: var(--primary); color: var(--bg-body); }
+.btn-minus { background: var(--danger); color: var(--text-on-accent); }
 
-/* --- PANEL LATERAL DERECHO (CENTRADO) --- */
 .bloque-side { 
     display: flex; 
     flex-direction: column; 
@@ -218,49 +227,55 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
 }
 .pared-meta { font-size: 0.7rem; text-align: center; font-weight: bold; line-height: 1.1; }
 
-/* --- SECCIÓN PAREDES --- */
 .pared-item { 
-    background: var(--card-bg); padding: 8px; margin-bottom: var(--gap); 
-    border: var(--border-width) solid var(--border-color); border-radius: var(--radius);
+    background: var(--card-bg); padding: 8px; margin-bottom: var(--gap);
+    border-radius: var(--radius);
     display: flex; align-items: center; gap: 8px;
 }
-.pared-drag-handle { cursor: grab; color: #000; padding: 0 1px; }
+.pared-drag-handle { cursor: grab; color: var(--text-secondary); padding: 0 1px; }
+
+.pared-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
 .pared-numero { font-weight: bold; width: 8px; }
 .pared-right-panel { display: flex; flex-direction: column; flex: 1; gap: 5px; }
 .pared-input-nombre { 
-    width: 100%; border: var(--border-width) solid var(--border-color); 
-    padding: 6px; font-weight: 700; outline: none; border-radius: var(--radius);
-    margin-bottom: 5px; /* Espacio adicional para separar de los botones */
+    width: 100%; border: none; 
+    padding: 6px; font-weight: 700; outline: none; border-radius: var(--radius); color: var(--text-primary);
 }
 .pared-controles { display: flex; gap: 5px; }
 .btn-control {
-    border: var(--border-width) solid var(--border-color);
     padding: 6px;
     cursor: pointer;
     flex: 1;
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #ffffff;
+    background: var(--card-bg);
     border-radius: var(--radius);
     transition: transform 0.1s ease, filter 0.1s ease;
     -webkit-tap-highlight-color: transparent;
 }
 .btn-control:active { transform: scale(0.92); }
-.btn-control.btn-eliminar { background: #ef4444; color: white; }
+.btn-control.btn-eliminar { background: var(--danger); color: var(--bg-body); }
 
-/* Nuevo estilo para botones simples con color primario */
 .btn-control.btn-primary-simple {
     background-color: var(--primary);
-    color: white;
+    color: var(--bg-body);
 }
+
+/* ==========================================================================
+   5. Menús Desplegables (Dropdowns)
+   ========================================================================== */
 
 .dropdown-menu {
     position: absolute;
     top: 100%;
     right: 0;
-    background-color: white;
-    border: var(--border-width) solid var(--border-color);
+    background-color: var(--card-bg);
     border-radius: var(--radius);
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     z-index: 100;
@@ -271,18 +286,21 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
     display: block;
     padding: 10px 15px;
     text-decoration: none;
-    color: #333;
+    color: var(--text-primary);
     font-weight: 500;
 }
-.dropdown-menu a:hover { background-color: #f0f0f0; }
+.dropdown-menu a:hover { background-color: var(--border-color); }
 .dropdown-menu.oculto { display: none; }
 .dropdown-menu a.activa {
     background-color: var(--primary);
-    color: white;
+    color: var(--text-on-accent);
     font-weight: bold;
 }
 
-/* --- MODALES --- */
+/* ==========================================================================
+   6. Ventanas Modales
+   ========================================================================== */
+
 .modal { 
     position: fixed !important; inset: 0 !important; 
     background: rgba(0,0,0,0.4) !important; 
@@ -294,16 +312,16 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
 .modal.oculto { display: none !important; }
 
 .modal-contenido { 
-    background: white; padding: 20px; width: 100%; max-width: 400px; 
-    border: var(--border-width) solid var(--border-color); border-radius: var(--radius);
+    background: var(--bg-body); padding: 20px; width: 100%; max-width: 400px;
+    border-radius: var(--radius);
     display: flex; flex-direction: column;
     max-height: 85vh;
-    box-shadow: 8px 8px 0px 0px var(--border-color); 
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3); /* Sombra más sutil y moderna */
 }
 
 .modal-contenido h3 {
     margin-bottom: 15px;
-    padding-bottom: 10px;
+    padding-bottom: 15px;
     border-bottom: var(--border-width) solid var(--border-color);
     font-size: 1.2rem;
 }
@@ -311,71 +329,174 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
 .modal-body {
     overflow-y: auto;
     flex: 1;
-    margin: 0 0 15px 0;
-    padding-right: 5px;
+    margin: 15px 0;
+    padding-right: 10px;
 }
 
 .input-form { 
-    width: 100%; padding: 12px; border: var(--border-width) solid var(--border-color); 
-    margin-bottom: 15px; font-weight: bold; outline: none; border-radius: var(--radius);
+    width: 100%; padding: 12px; border: none; 
+    background-color: var(--card-bg);
+    margin-bottom: 15px;
+    font-weight: bold; outline: none; border-radius: var(--radius);
     transition: background 0.2s;
 }
 
 .input-form:focus {
-    background: #f8fafc;
+    background: #45475a;
     border-color: var(--primary);
 }
 
 .modal-botones { display: flex; gap: 10px; }
 
-.btn-guardar, .btn-cancelar { 
-    flex: 1; border: var(--border-width) solid var(--border-color); 
-    padding: 12px; font-weight: bold; cursor: pointer;
+#alerta-msg, #confirm-msg {
+    margin-bottom: 20px;
+}
+
+.btn-modal {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    font-weight: bold;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
     transition: transform 0.1s, filter 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+.btn-modal:active { transform: scale(0.97); }
+
+.btn-modal-primary:disabled, .btn-modal-primary[disabled] {
+    background: var(--card-bg) !important;
+    color: rgba(255, 255, 255, 0.4) !important;
+    cursor: not-allowed;
 }
 
-.btn-guardar:hover:not(:disabled) { filter: brightness(1.2); }
-.btn-guardar:active { transform: translateY(2px); }
-
-.btn-guardar:disabled { 
-    background: #cbd5e1; color: #64748b; cursor: not-allowed; 
+.btn-modal svg {
+    stroke: var(--bg-body) !important;
 }
 
-.btn-guardar { background: var(--primary); color: white; }
-.btn-cancelar { background: #fee2e2; color: #b91c1c; }
-.btn-cancelar:hover { background: #fecaca; }
-
-.pared-input-nombre {
-    cursor: pointer; 
-    background: transparent;
+.btn-modal-primary:disabled svg, .btn-modal-primary[disabled] svg {
+    stroke: rgba(255, 255, 255, 0.4) !important;
 }
+
+.btn-modal-cancel svg {
+    stroke: var(--text-secondary) !important;
+}
+
+.btn-modal-primary { background: var(--primary); color: var(--bg-body); }
+.btn-modal-cancel { background: var(--card-bg); color: var(--text-secondary); }
+.btn-modal-danger { background: var(--danger); color: var(--bg-body); }
+.btn-modal-secondary { background: var(--success); color: var(--bg-body); width: 100%; margin-bottom: 15px; }
+
+/* ==========================================================================
+   7. Componentes de Estado (Spinner, Tooltips)
+   ========================================================================== */
+
+.is-loading {
+    position: relative;
+    pointer-events: none;
+}
+.spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px; height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%; border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+.btn-eliminar.is-loading {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.btn-eliminar.is-loading .spinner {
+    border: 3px solid rgba(0, 0, 0, 0.2);
+    border-top-color: var(--primary);
+}
+
 .pared-input-nombre:focus {
     cursor: text;
-    background: #ffffff; 
+    background: var(--card-bg); 
     outline: 2px solid var(--primary);
 }
 
-/* --- NUEVOS ESTILOS: HISTORIAL Y TOAST --- */
-.historial-section { background: #f0f0f0; height: 100%; overflow-y: auto; flex: 1; }
+.validation-tooltip {
+    position: fixed;
+    background-color: var(--danger);
+    color: var(--bg-body);
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    font-size: 0.8rem;
+    font-weight: bold;
+    z-index: 10002;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.validation-tooltip.show { opacity: 1; transform: translateY(0); }
+
+/* ==========================================================================
+   8. Sección de Historial
+   ========================================================================== */
+
+.historial-section { 
+    background: var(--bg-body); 
+    height: 100%; 
+    overflow-y: auto; 
+    flex: 1; 
+    padding: var(--gap);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+#lista-historial {
+    display: flex; flex-direction: column; gap: var(--gap);
+}
 .historial-row { 
-    background: #fff; padding: 12px; margin-bottom: 10px; 
-    border: var(--border-width) solid var(--border-color); border-radius: var(--radius);
+    background: var(--card-bg); padding: 12px;
+    border-radius: var(--radius);
     display: flex; justify-content: space-between; align-items: center; 
 }
 .historial-row.seleccionado {
-    background-color: #dbeafe; /* Un azul claro para indicar selección */
-    border-color: var(--primary);
+    background-color: #45475a;
 }
 .historial-controles {
-    padding: 0 10px 10px 10px; display: flex; gap: 5px; align-items: center;
+    display: flex; gap: var(--gap); align-items: stretch;
+    margin-bottom: 10px;
 }
 
-/* --- NUEVA BARRA DE ACCIONES DE HISTORIAL --- */
+.contador-movimientos {
+    background-color: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: var(--accent);
+}
+
+#total-pared-panel {
+    background-color: var(--card-bg);
+    margin-top: 10px;
+    flex: 0;
+}
+
 .historial-acciones-bar {
     position: sticky;
     top: 0;
     background-color: var(--primary);
-    color: white;
+    color: var(--bg-body);
     padding: 8px 10px;
     display: flex;
     justify-content: space-between;
@@ -384,16 +505,18 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 .historial-acciones-bar.oculto { display: none; }
-.contador-seleccion-display {
-    font-weight: bold;
-}
-.historial-acciones-bar .btn-control { background-color: rgba(255,255,255,0.2); color: white; }
-.historial-acciones-bar .btn-eliminar { background-color: #ef4444; }
+.contador-seleccion-display { font-weight: bold; }
+.historial-acciones-bar .btn-control { background-color: rgba(30, 30, 46, 0.2); color: var(--bg-body); }
+.historial-acciones-bar .btn-eliminar { background-color: var(--danger); }
+
+/* ==========================================================================
+   9. Notificaciones (Toasts)
+   ========================================================================== */
 
 .toast-undo { 
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
-    background: #333; 
-    color: white; 
+    background: var(--card-bg); 
+    color: var(--text-primary); 
     padding: 10px 10px 10px 16px; 
     border-radius: var(--radius); 
     display: flex; gap: 10px; align-items: center;
@@ -408,50 +531,47 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
     align-items: center;
     gap: 10px;
 }
-.toast-icon {
-    color: #9ca3af;
-}
+.toast-icon { color: var(--text-secondary); }
 .btn-undo {
-    background-color: #555; color: white; flex: 0; padding: 6px 12px;
+    background-color: #585b70; color: var(--text-primary); flex: 0; padding: 6px 12px;
 }
 .toast-undo.oculto { display: none !important; }
 
-/* Estilo para el nuevo panel de fecha */
 .panel-fecha {
-    background: #e2e8f0;
-    padding: 10px;
-    margin: 10px;
-    border: var(--border-width) solid var(--border-color);
+    background: var(--danger);
+    padding: 12px;
+    border: none;
     text-align: center;
     font-weight: bold;
-    color: #333;
+    color: var(--bg-body);
     font-size: 1rem;
+    border-radius: var(--radius);
+    margin-bottom: 10px;
 }
 
+.lista-historial-container {
+    flex: 1;
+    overflow-y: auto;
+}
 /* Color para la pared seleccionada */
 .pared-item.activa {
-    background-color: var(--primary) !important;
-    color: white !important;
-    border-color: #312e81 !important;
+    background-color: var(--accent) !important;
+    color: var(--bg-body) !important;
 }
 
-/* Ajuste del input dentro de la pared activa para que se vea bien */
 .pared-item.activa .pared-input-nombre {
     color: white;
     background: rgba(0,0,0,0.1);
-    border-color: white;
 }
-/* Nueva clase para bloquear la sección */
 
-/* --- NUEVO FEEDBACK TOAST --- */
 .feedback-toast {
     position: fixed;
     bottom: 20px;
     left: 10px;
     right: 10px;
     padding: 12px 16px;
-    background-color: #333;
-    color: white;
+    background-color: var(--card-bg);
+    color: var(--text-primary);
     border-radius: var(--radius);
     display: flex;
     align-items: center;
@@ -463,125 +583,74 @@ body { background-color: var(--bg-body); display: flex; justify-content: center;
 }
 .feedback-toast.show { transform: translateY(0); }
 .feedback-toast.oculto { display: none; }
-/* --- AGREGAR ESTO AL FINAL DE TU STYLES.CSS --- */
 
-/* Mejora visual para cuando la sección está bloqueada */
-/* Cuando la lista está bloqueada, ocultamos los controles de edición */
+/* ==========================================================================
+   10. Lógica de Interfaz (UI Logic)
+   ========================================================================== */
+
 .lista-paredes.seccion-bloqueada .pared-drag-handle,
 .lista-paredes.seccion-bloqueada .pared-controles {
     display: none !important;
 }
 
-/* Estilo para los botones de control de edición */
-.btn-control-edicion {
-    flex: 1; 
-    padding: 8px; 
-    font-weight: bold; 
-    transition: background 0.2s;
-}
-
-/* Este estilo ya no es necesario con los botones pushable */
-.btn-control-edicion:hover {
-    background: #f0f0f0;
-}
-
-/* --- BOTONES REALISTAS (PUSHABLE) --- */
-/* Estilo base para el contenedor del botón */
-.btn-pushable {
-    position: relative;
-    border: none;
-    background: transparent;
-    padding: 0;
-    cursor: pointer;
-    outline-offset: 4px;
-    transition: filter 250ms;
-    -webkit-tap-highlight-color: transparent; /* Evita el destello en móviles */
-}
-
-/* La cara frontal del botón */
-.btn-pushable-front {
-    display: block;
-    position: relative;
-    padding: 8px 8px;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: bold;
-    color: white;
-    transform: translateY(-4px); /* Lo eleva para crear profundidad */
-    transition: transform 600ms cubic-bezier(.3, .7, .4, 1);
-    will-change: transform;
-}
-
-/* El borde/profundidad del botón */
-.btn-pushable-edge {
-    position: absolute;
-    top: 0;
-    left: 0;
+.btn-simple-zoom {
     width: 100%;
-    height: 100%;
-    border-radius: 8px;
-}
-
-/* La sombra debajo del botón */
-.btn-pushable-shadow {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border-radius: 8px;
-    background: hsl(0deg 0% 0% / 0.15);
-    transform: translateY(2px); /* Posiciona la sombra */
-    transition: transform 600ms cubic-bezier(.3, .7, .4, 1);
-}
-
-/* Colores específicos */
-.btn-pushable-primary .btn-pushable-front { background: var(--primary); }
-.btn-pushable-primary .btn-pushable-edge { background: #312e81; }
-
-.btn-pushable-green .btn-pushable-front { background: #16a34a; }
-.btn-pushable-green .btn-pushable-edge { background: #166534; }
-
-.btn-pushable-warning .btn-pushable-front { background: #f59e0b; }
-.btn-pushable-warning .btn-pushable-edge { background: #b45309; }
-
-.btn-pushable-cancel .btn-pushable-front { background: #a8a29e; color: #1c1917; }
-.btn-pushable-cancel .btn-pushable-edge { background: #57534e; }
-
-.btn-pushable-danger .btn-pushable-front { background: #ef4444; }
-.btn-pushable-danger .btn-pushable-edge { background: #b91c1c; }
-
-.btn-pushable-neutral .btn-pushable-front { background: #ffffff; color: #1c1917; border: 0px solid var(--primary); }
-.btn-pushable-neutral .btn-pushable-edge { background: #a1a1aa; }
-
-/* Interacciones */
-.btn-pushable:hover .btn-pushable-front { transform: translateY(-6px); }
-.btn-pushable:hover .btn-pushable-shadow { transform: translateY(4px); }
-.btn-pushable:active .btn-pushable-front { transform: translateY(-2px); }
-.btn-pushable:active .btn-pushable-shadow { transform: translateY(1px); }
-
-/* Ajuste para el botón de historial más pequeño */
-.btn-pushable.btn-header-icon .btn-pushable-front {
+    margin-bottom: 13px;
     padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: var(--primary);
+    color: var(--bg-body);
+    border: none;
+    border-radius: var(--radius);
+    font-weight: bold;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(.3, .7, .4, 1);
+    -webkit-tap-highlight-color: transparent;
 }
 
-.btn-pushable:disabled { filter: grayscale(1); cursor: not-allowed; }
+.btn-simple-zoom svg {
+    stroke: var(--bg-body);
+}
 
-/* Asegurar que el contenedor padre de las paredes tenga posición relativa para el bloqueo */
+/* Animación del spinner */
+@keyframes spin {
+    from {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+.btn-simple-zoom:hover {
+    transform: scale(1.02);
+}
+
 .paredes-section {
     position: relative;
 }
 
-/* Opcional: Si quieres un efecto de "bloqueado" al pasar el mouse por la sección bloqueada */
-/* 1. Bloqueamos solo la lista de paredes, no el contenedor completo */
-/* --- AJUSTE DE LÓGICA DE BLOQUEO (Reemplaza tus bloques finales por esto) --- */
-
-/* 1. El botón de edición SIEMPRE debe ser clickable */
 .paredes-header {
     pointer-events: auto !important;
     position: relative;
     z-index: 10;
 }
 
-/* 2. Bloqueamos solo la lista de paredes y su contenido */
-/* 3. Aseguramos que el botón no se vea afectado por la opacidad del padre */
+.lista-paredes.seccion-bloqueada {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.lista-paredes.seccion-bloqueada .pared-content {
+    pointer-events: auto;
+}
+
+.lista-paredes.seccion-bloqueada .pared-input-nombre {
+    background-color: var(--bg-body);
+    border: 1px solid var(--primary);
+    cursor: pointer; /* Cambia el cursor para indicar que se puede hacer clic */
+}
