@@ -40,7 +40,14 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarMenuOrdenamiento();
     inicializarControlesHistorial();
     lucide.createIcons(); // Asegura que los íconos se creen en la carga inicial
+    inicializarFiltrosHistorial();
     inicializarBuscadorHistorial(); // Inicializamos el nuevo buscador
+
+    // Restauramos las notificaciones de conexión
+    window.addEventListener('online', () => {
+        mostrarFeedback("Conexión restablecida.", "wifi", "#16a34a");
+    });
+    window.addEventListener('offline', () => mostrarFeedback("Sin conexión. Los cambios no se guardarán.", "wifi-off", "#f59e0b"));
 });
 
 async function iniciarApp() {
@@ -54,23 +61,28 @@ async function iniciarApp() {
 
 function inicializarControlesEdicion() {
     const listaParedesElement = document.getElementById('lista-paredes'); // Apunta directamente a la lista
-    const btnActivar = document.getElementById('btn-activar-edicion');
-    const btnCancelarEd = document.getElementById('btn-cancelar-edicion');
-    if (!btnActivar || !btnCancelarEd) return;
+    const btnToggleEdicion = document.getElementById('btn-toggle-edicion');
+    if (!btnToggleEdicion) return;
 
-    btnActivar.onclick = () => {
+    const slideEditar = document.getElementById('slide-editar');
+    const slideCancelar = document.getElementById('slide-cancelar');
+
+    btnToggleEdicion.onclick = () => {
+        if (edicionParedesHabilitada) {
+            // Si está habilitado, lo desactivamos (mostramos "Editar")
+            edicionParedesHabilitada = false;
+            listaParedesElement.classList.add('seccion-bloqueada');
+            btnToggleEdicion.classList.remove('is-alternate');
+            slideEditar.style.transform = 'translateY(0)'; // Vuelve a su posición
+            slideCancelar.style.transform = 'translateY(100%)'; // Se oculta abajo
+        } else {
+            // Si está deshabilitado, lo activamos (mostramos "Cancelar")
         edicionParedesHabilitada = true;
-        listaParedesElement.classList.remove('seccion-bloqueada'); // Remueve la clase de la lista
-        btnActivar.style.display = 'none';
-        btnCancelarEd.style.display = 'block';
-        renderizarParedes(); // Re-renderiza para habilitar Sortable y mostrar controles
-    };
-
-    btnCancelarEd.onclick = () => {
-        edicionParedesHabilitada = false;
-        listaParedesElement.classList.add('seccion-bloqueada'); // Añade la clase a la lista
-        btnActivar.style.display = 'block';
-        btnCancelarEd.style.display = 'none';
+            listaParedesElement.classList.remove('seccion-bloqueada');
+            btnToggleEdicion.classList.add('is-alternate');
+            slideEditar.style.transform = 'translateY(-100%)'; // Se oculta arriba
+            slideCancelar.style.transform = 'translateY(0)'; // Entra desde abajo
+        }
         renderizarParedes();
         renderizarBloques();
     };
@@ -81,8 +93,10 @@ function inicializarMenuOrdenamiento() {
     const menu = document.getElementById('menu-ordenar');
 
     const opcionesOrden = [
-        { clave: 'nombre-asc', texto: 'Ordenar de A-Z' },
-        { clave: 'nombre-desc', texto: 'Ordenar de Z-A' }
+        { clave: 'nombre-asc', texto: 'Nombre (A-Z)' },
+        { clave: 'nombre-desc', texto: 'Nombre (Z-A)' },
+        { clave: 'num-asc', texto: 'Número (menor a mayor)' },
+        { clave: 'num-desc', texto: 'Número (mayor a menor)' }
     ];
 
     menu.innerHTML = opcionesOrden.map(opt => `<a href="#" data-orden="${opt.clave}">${opt.texto}</a>`).join('');
@@ -114,17 +128,86 @@ function inicializarMenuOrdenamiento() {
     document.addEventListener('click', () => menu.classList.add('oculto'));
 }
 
+function inicializarFiltrosHistorial() {
+    const btnFiltro = document.getElementById('btn-filtro-historial');
+    const menu = document.getElementById('menu-filtro-historial');
+    const filtrosFecha = document.getElementById('historial-filtros-fecha');
+    const fechaInicioUI = document.getElementById('fecha-inicio');
+    const fechaFinUI = document.getElementById('fecha-fin');
+
+    const opcionesFiltro = [
+        { clave: 'hoy', texto: 'Hoy' },
+        { clave: 'mes', texto: 'Este Mes' },
+        { clave: 'personalizado', texto: 'Personalizado...' }
+    ];
+
+    menu.innerHTML = opcionesFiltro.map(opt => `<a href="#" data-filtro="${opt.clave}">${opt.texto}</a>`).join('');
+
+    btnFiltro.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.classList.toggle('oculto');
+    });
+
+    menu.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (e.target.tagName !== 'A') return;
+
+        const filtro = e.target.dataset.filtro;
+
+        // Añadimos la lógica para resaltar la opción activa
+        menu.querySelectorAll('a').forEach(a => a.classList.remove('activa'));
+        e.target.classList.add('activa');
+
+        menu.classList.add('oculto');
+        filtrosFecha.style.display = 'none';
+
+        const hoy = new Date();
+        let inicio, fin;
+
+        if (filtro === 'hoy') {
+            // Creamos un rango preciso que abarca desde el final de ayer hasta el principio de mañana.
+            inicio = new Date(hoy);
+            inicio.setHours(0, 0, 0, 0); // Hoy a las 00:00:00
+
+            fin = new Date(hoy);
+            fin.setHours(23, 59, 59, 999); // Hoy a las 23:59:59
+        } else if (filtro === 'mes') {
+            inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+            fin = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+        } else if (filtro === 'personalizado') {
+            filtrosFecha.style.display = 'flex';
+            return; // No cargamos historial hasta que el usuario elija fechas
+        }
+
+        fechaInicioUI.valueAsDate = inicio;
+        fechaFinUI.valueAsDate = fin;
+        cargarHistorial();
+    });
+
+    // Carga automática al cambiar las fechas
+    fechaInicioUI.addEventListener('change', cargarHistorial);
+    fechaFinUI.addEventListener('change', cargarHistorial);
+
+    document.addEventListener('click', () => menu.classList.add('oculto'));
+}
+
 function inicializarControlesHistorial() {
     btnCancelarSeleccion.addEventListener('click', salirModoSeleccion);
     btnEliminarSeleccionados.addEventListener('click', async () => {
         if (historialSeleccionado.size === 0) return;
-        const confirmar = await solicitarConfirmacion(`¿Deseas eliminar los ${historialSeleccionado.size} elementos?`);
+        const confirmar = await solicitarConfirmacion(`¿Deseas eliminar los ${historialSeleccionado.size} elementos?`, 'btn-eliminar-seleccionados');
         if (confirmar) {
+            mostrarSpinnerEnBoton('btn-eliminar-seleccionados', true);
             const idsParaEliminar = Array.from(historialSeleccionado);
-            await supabaseClient.from('historial').delete().in('id', idsParaEliminar);
-            mostrarFeedback(`${historialSeleccionado.size} registros eliminados`, "trash-2", "#ef4444");
-            salirModoSeleccion();
-            cargarHistorial();
+            const { error } = await supabaseClient.from('historial').delete().in('id', idsParaEliminar);
+            mostrarSpinnerEnBoton('btn-eliminar-seleccionados', false);
+            if (error) {
+                mostrarFeedback("Error al eliminar los registros.", "x-circle", "#ef4444");
+            } else {
+                mostrarFeedback(`${historialSeleccionado.size} registros eliminados`, "trash-2", "#ef4444");
+                salirModoSeleccion();
+                cargarHistorial();
+            }
         }
     });
 }
@@ -236,19 +319,41 @@ async function cargarHistorial() {
     const fin = document.getElementById('fecha-fin').value;
     const busquedaHistorial = document.getElementById('buscador-historial').value.toLowerCase().trim();
 
-    // Si los campos de fecha están vacíos, los rellenamos con la fecha de hoy
-    if (!document.getElementById('fecha-inicio').value) {
-        document.getElementById('fecha-inicio').valueAsDate = new Date();
+    let query = supabaseClient.from('historial').select('*').order('created_at', { ascending: false });
+    
+    if (inicio) {
+        // Se establece el inicio del día en la zona horaria local del navegador
+        const [y, m, d] = inicio.split('-').map(Number);
+        const fechaInicio = new Date(y, m - 1, d, 0, 0, 0, 0);
+        query = query.gte('created_at', fechaInicio.toISOString());
     }
-    if (!document.getElementById('fecha-fin').value) {
-        document.getElementById('fecha-fin').valueAsDate = new Date();
+    if (fin) {
+        // Se establece el final del día creando la fecha del día siguiente a las 00:00:00
+        // Esto evita problemas con el final del día (23:59:59) y zonas horarias.
+        const [y, m, d] = fin.split('-').map(Number);
+        const fechaFin = new Date(y, m - 1, d + 1, 0, 0, 0, 0);
+        query = query.lte('created_at', fechaFin.toISOString());
+    }
+    
+    let { data, error } = await query;
+
+    if (error) {
+        mostrarFeedback("Error al cargar el historial.", "x-circle", "#ef4444");
+        return;
     }
 
-    let query = supabaseClient.from('historial').select('*').order('created_at', { ascending: false });
-    if (inicio) query = query.gte('created_at', inicio);
-    if (fin) query = query.lte('created_at', fin + 'T23:59:59');
+    // Calcular y mostrar movimientos de hoy
+    const hoyUTC = new Date();
+    const inicioHoyUTC = new Date(Date.UTC(hoyUTC.getUTCFullYear(), hoyUTC.getUTCMonth(), hoyUTC.getUTCDate(), 0, 0, 0, 0));
+    const finHoyUTC = new Date(Date.UTC(hoyUTC.getUTCFullYear(), hoyUTC.getUTCMonth(), hoyUTC.getUTCDate(), 23, 59, 59, 999));
+
+    const { count: movimientosHoy } = await supabaseClient
+        .from('historial')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', inicioHoyUTC.toISOString())
+        .lte('created_at', finHoyUTC.toISOString());
     
-    let { data } = await query;
+    document.getElementById('contador-movimientos-hoy').textContent = movimientosHoy || 0;
 
     if (busquedaHistorial && data) {
         data = data.filter(m => 
@@ -289,9 +394,7 @@ async function cargarHistorial() {
         row.addEventListener('touchend', cancelPress);
         row.addEventListener('touchmove', cancelPress);
         row.addEventListener('click', () => {
-            if (modoSeleccionHistorial) {
-                toggleSeleccionHistorial(row.dataset.id);
-            }
+            if (modoSeleccionHistorial) toggleSeleccionHistorial(row.dataset.id, row);
         });
 
         const control = row.querySelector('.control-historial');
@@ -316,10 +419,19 @@ async function cargarHistorial() {
 }
 
 async function eliminarRegistroHistorial(id) {
-    if (!(await solicitarConfirmacion("¿Eliminar este registro?"))) return;
-    await supabaseClient.from('historial').delete().eq('id', id);
-    cargarHistorial();
-    mostrarFeedback("Registro de historial eliminado", "trash-2", "#ef4444");
+    const boton = document.querySelector(`.control-historial[data-id="${id}"] button`);
+    if (!(await solicitarConfirmacion("¿Eliminar este registro?", boton))) return;
+    
+    mostrarSpinnerEnBoton(boton, true);
+    const { error } = await supabaseClient.from('historial').delete().eq('id', id);
+    
+    if (error) {
+        mostrarSpinnerEnBoton(boton, false);
+        mostrarFeedback("Error al eliminar el registro.", "x-circle", "#ef4444");
+    } else {
+        cargarHistorial();
+        mostrarFeedback("Registro de historial eliminado", "trash-2", "#ef4444");
+    }
 }
 
 function entrarModoSeleccion(idInicial) {
@@ -329,14 +441,31 @@ function entrarModoSeleccion(idInicial) {
     cargarHistorial(); // Re-renderizar para mostrar checkboxes
 }
 
-function toggleSeleccionHistorial(id) {
+function toggleSeleccionHistorial(id, rowElement) {
     const idNum = parseInt(id);
-    if (historialSeleccionado.has(idNum)) {
+    const isSelected = historialSeleccionado.has(idNum);
+    const controlContainer = rowElement.querySelector('.control-historial');
+
+    if (isSelected) {
         historialSeleccionado.delete(idNum);
+        rowElement.classList.remove('seleccionado');
+        // Reemplazamos el ícono de check por el de círculo
+        if (controlContainer) controlContainer.innerHTML = `<i data-lucide="circle" style="width: 20px; height: 20px; color: var(--primary);"></i>`;
     } else {
         historialSeleccionado.add(idNum);
+        rowElement.classList.add('seleccionado');
+        // Reemplazamos el ícono de círculo por el de check
+        if (controlContainer) controlContainer.innerHTML = `<i data-lucide="check-circle-2" style="width: 20px; height: 20px; color: var(--primary);"></i>`;
     }
-    cargarHistorial(); // Re-renderizar para actualizar el estado del checkbox
+
+    // Actualizamos el contador de forma instantánea
+    const texto = historialSeleccionado.size === 1 ? '1 seleccionado' : `${historialSeleccionado.size} seleccionados`;
+    contadorSeleccionUI.textContent = texto;
+
+    // Si no quedan elementos seleccionados, salimos del modo selección
+    if (historialSeleccionado.size === 0) salirModoSeleccion();
+
+    lucide.createIcons(); // Volvemos a renderizar solo el ícono que cambió
 }
 
 function salirModoSeleccion() {
@@ -373,9 +502,14 @@ async function actualizarCantidad(bloqueId, cambio) {
     changeTimers[bloqueId] = setTimeout(async () => {
         if (pendingChanges[bloqueId] === 0) return;
         const totalAcumulado = pendingChanges[bloqueId];
-        await supabaseClient.from('bloques').update({ cantidad: b.cantidad }).eq('id', bloqueId);
-        const pared = estado.paredes.find(p => p.id === b.pared_id);
-        await supabaseClient.from('historial').insert([{ bloque_id: b.id, nombre_bloque: b.nombre, nombre_pared: pared?.nombre || "Desconocido", cambio: totalAcumulado }]);
+        try {
+            await supabaseClient.from('bloques').update({ cantidad: b.cantidad }).eq('id', bloqueId);
+            const pared = estado.paredes.find(p => p.id === b.pared_id);
+            await supabaseClient.from('historial').insert([{ bloque_id: b.id, nombre_bloque: b.nombre, nombre_pared: pared?.nombre || "Desconocido", cambio: totalAcumulado }]);
+        } catch (error) {
+            mostrarFeedback("Error de conexión al guardar cantidad.", "x-circle", "#ef4444");
+            // Opcional: revertir el cambio en la UI si falla
+        }
         pendingChanges[bloqueId] = 0;
         document.getElementById('toast-undo').classList.add('oculto');
     }, 3000);
@@ -389,8 +523,12 @@ async function editarCantidadDirecta(bloqueId, nuevoValor) {
     const cambio = cantidadNueva - bloque.cantidad;
     if (cambio !== 0) {
         bloque.cantidad = cantidadNueva;
-        await supabaseClient.from('bloques').update({ cantidad: cantidadNueva }).eq('id', bloqueId);
-        await registrarMovimiento(bloque, cambio);
+        try {
+            await supabaseClient.from('bloques').update({ cantidad: cantidadNueva }).eq('id', bloqueId);
+            await registrarMovimiento(bloque, cambio);
+        } catch (error) {
+            mostrarFeedback("Error de conexión al editar cantidad.", "x-circle", "#ef4444");
+        }
 
         renderizarBloques();
         calcularTotalGlobal();
@@ -425,8 +563,12 @@ function renderizarParedes() {
             onEnd: async () => {
                 const elementos = Array.from(listaParedesUI.children);
                 for(let i=0; i<elementos.length; i++) {
-                    const pared = estado.paredes.find(p => p.id === elementos[i].dataset.id);
-                    if (pared) await supabaseClient.from('paredes').update({ posicion: i }).eq('id', pared.id);
+                    try {
+                        const pared = estado.paredes.find(p => p.id === elementos[i].dataset.id);
+                        if (pared) await supabaseClient.from('paredes').update({ posicion: i }).eq('id', pared.id);
+                    } catch (error) {
+                        mostrarFeedback("Error al guardar el nuevo orden.", "x-circle", "#ef4444");
+                    }
                 }
                 await iniciarApp();
             }
@@ -457,12 +599,22 @@ function renderizarBloques() {
         estado.bloques.filter(b => b.pared_id === estado.paredActivaId);
 
     // Aplicar ordenamiento
+    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
     mostrar.sort((a, b) => {
         switch (estado.ordenBloques) {
             case 'nombre-asc':
-                return a.nombre.localeCompare(b.nombre);
+                return collator.compare(a.nombre, b.nombre);
             case 'nombre-desc':
-                return b.nombre.localeCompare(a.nombre);
+                return collator.compare(b.nombre, a.nombre);
+            case 'num-asc':
+                // Extrae los números de los nombres para una comparación numérica correcta
+                const numA_asc = parseInt(a.nombre.match(/\d+/g)?.[0] || 0);
+                const numB_asc = parseInt(b.nombre.match(/\d+/g)?.[0] || 0);
+                return numA_asc - numB_asc;
+            case 'num-desc':
+                const numA_desc = parseInt(a.nombre.match(/\d+/g)?.[0] || 0);
+                const numB_desc = parseInt(b.nombre.match(/\d+/g)?.[0] || 0);
+                return numB_desc - numA_desc;
             default:
                 return 0;
         }
@@ -499,38 +651,52 @@ function calcularTotalGlobal() {
 // --- 11. MODALES Y GESTIÓN DE ELEMENTOS ---
 async function eliminarPared(id, event) {
     event.stopPropagation();
-    const confirmar = await solicitarConfirmacion("¿Seguro que quieres eliminar la pared?");
+    const boton = event.currentTarget;
+    const confirmar = await solicitarConfirmacion("¿Seguro que quieres eliminar la pared?", boton);
     if (!confirmar) return;
+    try {
+        mostrarSpinnerEnBoton(boton, true);
+        // Primero se eliminan los bloques para no violar la restricción de la BD.
+        const { error: errorBloques } = await supabaseClient.from('bloques').delete().eq('pared_id', id);
+        if (errorBloques) throw new Error("Error al eliminar los bloques de la pared.");
 
-    // Lógica funcional restaurada:
-    // 1. Actualizar la UI inmediatamente
-    estado.paredes = estado.paredes.filter(p => p.id !== id);
-    estado.bloques = estado.bloques.filter(b => b.pared_id !== id);
-    if (estado.paredActivaId === id) { estado.paredActivaId = null; }
-    renderizarParedes(); renderizarBloques(); calcularTotalGlobal();
+        // Luego, se elimina la pared.
+        const { error: errorPared } = await supabaseClient.from('paredes').delete().eq('id', id);
+        if (errorPared) throw new Error("Error al eliminar la pared.");
 
-    // 2. Enviar las órdenes de eliminación a la base de datos
-    await supabaseClient.from('bloques').delete().eq('pared_id', id);
-    await supabaseClient.from('paredes').delete().eq('id', id);
-
-    mostrarFeedback("Pared eliminada correctamente", "trash-2", "#ef4444");
+        mostrarFeedback("Pared eliminada correctamente", "trash-2", "#ef4444");
+        await iniciarApp(); // Recargar la UI para reflejar los cambios.
+    } catch (error) {
+        mostrarSpinnerEnBoton(boton, false);
+        mostrarFeedback(error.message, "x-circle", "#ef4444");
+    }
 }
 
 async function eliminarBloque(id) {
-    const confirmar = await solicitarConfirmacion("¿Seguro que quieres eliminar el bloque?");
+    // Encontrar el botón correcto para mostrar el spinner
+    const boton = document.querySelector(`button[onclick="eliminarBloque('${id}')"]`);
+    const confirmar = await solicitarConfirmacion("¿Seguro que quieres eliminar el bloque?", boton);
     if (!confirmar) return;
 
-    // Lógica funcional restaurada:
-    estado.bloques = estado.bloques.filter(b => b.id !== id);
-    renderizarBloques(); calcularTotalGlobal();
-    await supabaseClient.from('bloques').delete().eq('id', id);
+    mostrarSpinnerEnBoton(boton, true);
+    const { error } = await supabaseClient.from('bloques').delete().eq('id', id);
 
-    mostrarFeedback("Bloque eliminado correctamente", "trash-2", "#ef4444");
+    if (error) {
+        mostrarSpinnerEnBoton(boton, false);
+        mostrarFeedback("Error al eliminar el bloque.", "x-circle", "#ef4444");
+    } else {
+        mostrarFeedback("Bloque eliminado correctamente", "trash-2", "#ef4444");
+        await iniciarApp(); // Recargar la UI para reflejar los cambios.
+    }
 }
 
-async function solicitarConfirmacion(mensaje) {
+async function solicitarConfirmacion(mensaje, botonOrigen = null) {
     modalConfirm.classList.remove('oculto');
     document.getElementById('confirm-msg').textContent = mensaje;
+
+    // Guardamos el contenido original del botón de confirmación "Sí"
+    const contenidoOriginalSi = btnConfirmSi.innerHTML;
+
     return new Promise((resolve) => {
         const cerrar = () => { modalConfirm.classList.add('oculto'); btnConfirmSi.removeEventListener('click', onSi); btnConfirmNo.removeEventListener('click', onNo); };
         const onSi = () => { cerrar(); resolve(true); };
@@ -546,14 +712,11 @@ function abrirModalNuevaPared() {
     document.getElementById('input-num-bloques').value = '';
     contenedorBloquesDinamicos.innerHTML = '';
     btnGuardarPared.disabled = true;
-    btnGuardarPared.querySelector('.btn-pushable-front').textContent = "Guardar"; // Actualiza el texto del span frontal
+    btnGuardarPared.innerHTML = '<i data-lucide="save"></i> Guardar'; // Actualiza el contenido del botón plano
     modal.querySelector('h3').textContent = "Agregar Nueva Pared"; // Título del modal
     modal.classList.remove('oculto');
-}
-
-function cerrarYLimpiarModal() {
-    modal.classList.add('oculto');
-    estado.paredIdEnEdicion = null;
+    agregarListenersValidacion();
+    lucide.createIcons();
 }
 
 btnCancelar.onclick = cerrarYLimpiarModal;
@@ -571,39 +734,49 @@ btnGenerarBloques.onclick = () => {
         if (valoresPreservados[i]) { input.value = valoresPreservados[i].nombre; input.dataset.bloqueId = valoresPreservados[i].id; input.dataset.cantidad = valoresPreservados[i].cantidad; }
         container.appendChild(input);
     }
-    btnGuardarPared.disabled = false;
+    agregarListenersValidacion(); // Re-aplicamos listeners a los nuevos inputs
 };
 
 btnGuardarPared.onclick = async () => {
-    const nombre = document.getElementById('input-nombre-pared').value;
+    if (btnGuardarPared.disabled) return; // Si está deshabilitado, no hace nada
+    const nombre = document.getElementById('input-nombre-pared').value.trim();
     const inputs = document.querySelectorAll('.bloque-dinamico-input');
-    if (!nombre) { mostrarAlerta("El nombre es obligatorio"); return; }
-    
-    // Lógica de eliminación de bloques del modal (de la versión que funcionaba)
-    if (estado.paredIdEnEdicion) {
-        const bloquesOriginales = estado.bloques.filter(b => b.pared_id === estado.paredIdEnEdicion);
-        const idsEnInputs = Array.from(inputs).filter(i => i.dataset.bloqueId).map(i => i.dataset.bloqueId);
-        const aEliminar = bloquesOriginales.filter(b => !idsEnInputs.includes(b.id.toString()));
-        for (let b of aEliminar) { await supabaseClient.from('bloques').delete().eq('id', b.id); }
-    }
+    mostrarSpinnerEnBoton('btn-guardar-pared', true);
 
-    btnGuardarPared.disabled = true;
+    try {
+        if (estado.paredIdEnEdicion) {
+            // --- LÓGICA DE ACTUALIZACIÓN ---
+            // Eliminar bloques que ya no están en el modal
+            const bloquesOriginales = estado.bloques.filter(b => b.pared_id === estado.paredIdEnEdicion);
+            const idsEnInputs = Array.from(inputs).filter(i => i.dataset.bloqueId).map(i => i.dataset.bloqueId);
+            const aEliminar = bloquesOriginales.filter(b => !idsEnInputs.includes(b.id.toString()));
+            for (let b of aEliminar) {
+                const { error } = await supabaseClient.from('bloques').delete().eq('id', b.id);
+                if (error) throw new Error(`Error al eliminar el bloque ${b.nombre}.`);
+            }
 
-    if (estado.paredIdEnEdicion) {
-        await supabaseClient.from('paredes').update({ nombre }).eq('id', estado.paredIdEnEdicion);
-        for (let input of inputs) {
-            if (input.dataset.bloqueId) { await supabaseClient.from('bloques').update({ nombre: input.value }).eq('id', input.dataset.bloqueId); }
-            else { await supabaseClient.from('bloques').insert({ pared_id: estado.paredIdEnEdicion, nombre: input.value, cantidad: 0 }); }
+            // Actualizar o crear los demás bloques
+            await supabaseClient.from('paredes').update({ nombre }).eq('id', estado.paredIdEnEdicion);
+            for (let input of inputs) {
+                if (input.dataset.bloqueId) { await supabaseClient.from('bloques').update({ nombre: input.value }).eq('id', input.dataset.bloqueId); }
+                else { await supabaseClient.from('bloques').insert({ pared_id: estado.paredIdEnEdicion, nombre: input.value, cantidad: 0 }); }
+            }
+            mostrarFeedback("Pared actualizada correctamente", "pencil", "var(--primary)");
+        } else {
+            // --- LÓGICA DE CREACIÓN ---
+            const { data: p, error } = await supabaseClient.from('paredes').insert([{ nombre }]).select().single();
+            if (error) throw new Error("Error al crear la pared.");
+            const bloquesNuevos = Array.from(inputs).map(i => ({ pared_id: p.id, nombre: i.value, cantidad: 0 }));
+            await supabaseClient.from('bloques').insert(bloquesNuevos);
+            mostrarFeedback("Pared agregada correctamente", "check-circle", "#16a34a");
         }
-        mostrarFeedback("Pared actualizada correctamente", "pencil", "var(--primary)");
-    } else {
-        const { data: p } = await supabaseClient.from('paredes').insert([{ nombre }]).select().single();
-        const bloquesNuevos = Array.from(inputs).map(i => ({ pared_id: p.id, nombre: i.value, cantidad: 0 }));
-        await supabaseClient.from('bloques').insert(bloquesNuevos);
-        mostrarFeedback("Pared agregada correctamente", "check-circle", "#16a34a");
+        await iniciarApp();
+        cerrarYLimpiarModal();
+    } catch (error) {
+        mostrarFeedback(error.message, "x-circle", "#ef4444");
+    } finally {
+        mostrarSpinnerEnBoton('btn-guardar-pared', false); // Oculta el spinner al finalizar
     }
-    await iniciarApp();
-    cerrarYLimpiarModal();
 };
 
 function abrirModalEditar(id) {
@@ -622,15 +795,10 @@ function abrirModalEditar(id) {
     });
     modal.classList.remove('oculto');
     btnGuardarPared.disabled = false;
-    modal.querySelector('h3').textContent = "Editar Pared"; // Título del modal
-    btnGuardarPared.querySelector('.btn-pushable-front').textContent = "Actualizar"; // Actualiza el texto del span frontal
-}
-
-function mostrarAlerta(mensaje) {
-    const modalAlerta = document.getElementById('modal-alerta');
-    document.getElementById('alerta-msg').textContent = mensaje;
-    modalAlerta.classList.remove('oculto');
-    document.getElementById('btn-alerta-cerrar').onclick = () => modalAlerta.classList.add('oculto');
+    modal.querySelector('h3').textContent = "Editar Pared";
+    btnGuardarPared.innerHTML = '<i data-lucide="save"></i> Actualizar'; // Actualiza el contenido del botón plano
+    agregarListenersValidacion();
+    lucide.createIcons();
 }
 
 let feedbackTimer = null;
@@ -648,6 +816,96 @@ function mostrarFeedback(mensaje, icono, color = '#333') {
 
     if (feedbackTimer) clearTimeout(feedbackTimer);
     feedbackTimer = setTimeout(() => { toast.classList.remove('show'); }, 2000);
+}
+
+function cerrarYLimpiarModal() {
+    modal.classList.add('oculto');
+    estado.paredIdEnEdicion = null;
+    // Limpiamos los listeners para evitar acumulaciones
+    const inputs = modal.querySelectorAll('#input-nombre-pared, #input-num-bloques, .bloque-dinamico-input');
+    inputs.forEach(input => input.removeEventListener('input', validarModalPared));
+}
+
+function agregarListenersValidacion() {
+    const inputs = modal.querySelectorAll('#input-nombre-pared, #input-num-bloques, .bloque-dinamico-input');
+    inputs.forEach(input => {
+        input.removeEventListener('input', validarModalPared); // Limpiamos listeners antiguos
+        input.addEventListener('input', validarModalPared);
+    });
+    validarModalPared(); // Validamos el estado inicial
+}
+
+function validarModalPared() {
+    const nombrePared = document.getElementById('input-nombre-pared').value.trim();
+    const numBloques = document.getElementById('input-num-bloques').value.trim();
+    const inputsBloques = Array.from(document.querySelectorAll('.bloque-dinamico-input'));
+    
+    const todosBloquesLlenos = inputsBloques.length > 0 && inputsBloques.every(input => input.value.trim() !== '');
+
+    if (nombrePared && numBloques && todosBloquesLlenos) {
+        btnGuardarPared.disabled = false;
+    } else {
+        btnGuardarPared.disabled = true;
+    }
+}
+
+function mostrarTooltipValidacion(inputElement, mensaje) {
+    document.querySelectorAll('.validation-tooltip').forEach(t => t.remove());
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'validation-tooltip';
+    tooltip.textContent = mensaje;
+    document.body.appendChild(tooltip);
+
+    const rect = inputElement.getBoundingClientRect();
+    tooltip.style.left = `${rect.left}px`;
+    tooltip.style.top = `${rect.top - tooltip.offsetHeight - 5}px`;
+
+    requestAnimationFrame(() => tooltip.classList.add('show'));
+
+    setTimeout(() => {
+        tooltip.classList.remove('show');
+        setTimeout(() => tooltip.remove(), 200);
+    }, 2000);
+}
+
+document.querySelector('.modal-botones').addEventListener('click', (e) => {
+    if (e.target.closest('#btn-guardar-pared') && btnGuardarPared.disabled) {
+        const nombrePared = document.getElementById('input-nombre-pared');
+        const numBloques = document.getElementById('input-num-bloques');
+        const primerBloqueVacio = Array.from(document.querySelectorAll('.bloque-dinamico-input')).find(i => i.value.trim() === '');
+
+        if (nombrePared.value.trim() === '') mostrarTooltipValidacion(nombrePared, 'Falta el nombre de la pared');
+        else if (numBloques.value.trim() === '') mostrarTooltipValidacion(numBloques, 'Indica el número de bloques');
+        else if (document.querySelectorAll('.bloque-dinamico-input').length === 0) mostrarTooltipValidacion(numBloques, 'Debes generar los bloques');
+        else if (primerBloqueVacio) mostrarTooltipValidacion(primerBloqueVacio, 'Falta el nombre de este bloque');
+    }
+});
+
+function mostrarSpinnerEnBoton(botonOId, mostrar) {
+    const boton = typeof botonOId === 'string' ? document.getElementById(botonOId) : botonOId;
+    if (!boton) return;
+
+    const spinnerHTML = '<div class="spinner"></div>';
+
+    if (mostrar) {
+        // Guardar el contenido original del botón antes de reemplazarlo
+        if (!boton.dataset.originalContent) {
+            boton.dataset.originalContent = boton.innerHTML;
+        }
+        boton.classList.add('is-loading');
+        boton.disabled = true;
+        boton.innerHTML = spinnerHTML;
+    } else {
+        // Restaurar el contenido original
+        if (boton.dataset.originalContent) {
+            boton.innerHTML = boton.dataset.originalContent;
+            delete boton.dataset.originalContent; // Limpiar el atributo
+        }
+        boton.classList.remove('is-loading');
+        boton.disabled = false;
+        lucide.createIcons(); // Re-renderizar los íconos de Lucide que puedan haber sido restaurados
+    }
 }
 
 // INICIALIZACIÓN FINAL
